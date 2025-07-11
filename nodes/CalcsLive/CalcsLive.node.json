@@ -1,0 +1,19 @@
+{
+	"node": "n8n-nodes-calcslive.CalcsLive",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Productivity", "Transform"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://www.calcs.live/docs/api"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://www.calcs.live/docs"
+			}
+		]
+	},
+	"alias": ["Calculator", "Physics", "Units", "Math"]
+}

@@ -1,0 +1,63 @@
+{
+  "name": "n8n-nodes-calcslive",
+  "version": "1.0.0",
+  "description": "n8n custom node for CalcsLive calculation API integration",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "calcslive",
+    "calculator",
+    "physics",
+    "units",
+    "conversion"
+  ],
+  "license": "MIT",
+  "homepage": "https://www.calcs.live",
+  "author": {
+    "name": "CalcsLive",
+    "email": "don.wen@calcs.live"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calcslive/n8n-nodes-calcslive.git"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "pnpm": ">=7.18"
+  },
+  "packageManager": "pnpm@7.18.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "npm run build && npm run lint -s"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/CalcsLiveApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/CalcsLive/CalcsLive.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.29.0",
+    "eslint-plugin-n8n-nodes-base": "^1.11.0",
+    "gulp": "^4.0.2",
+    "n8n-workflow": "*",
+    "prettier": "^2.7.1",
+    "typescript": "^4.8.4"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
