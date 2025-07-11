@@ -11,7 +11,8 @@ export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'CalcsLive Calculator',
 		name: 'calcsLive',
-		icon: 'file:calcslive.svg',
+		// icon: 'file:calcslive.svg',
+		icon: 'file:e3d-logo2.png',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["articleId"]}}',

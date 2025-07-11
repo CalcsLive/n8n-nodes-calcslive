@@ -63,8 +63,8 @@ n8n-nodes-calcslive/
 ### Request Format
 ```json
 {
-  "articleId": "3LYPD4C96-34U",
-  "apiKey": "your-api-key",
+  "articleId": "3LYPD4C96-34U",         /* your calcID */
+  "apiKey": "embed_fd624bxxxxxxxx...",  /* your-api-key */
   "inputs": {
     "x": { "value": 150, "unit": "km" },
     "y": { "value": 2, "unit": "h" }
