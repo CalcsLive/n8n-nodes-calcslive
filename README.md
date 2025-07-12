@@ -25,7 +25,7 @@ npm run build
 # Link for local development
 npm link
 
-# In your n8n installation directory
+# In your n8n installation directory (C:\Users\<USERNAME>\.n8n\custom)
 npm link n8n-nodes-calcslive
 
 # Restart n8n
