@@ -74,133 +74,7 @@ export class CalcsLive implements INodeType {
 				}
 			},
 
-			// Load available units for the first input PQ
-			async getUnitsForInput1(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const articleId = this.getCurrentNodeParameter('articleId') as string;
-				const selectedInputPQs = this.getCurrentNodeParameter('selectedInputPQs') as string[];
-				const credentials = await this.getCredentials('calcsLiveApi');
-				
-				console.log('getUnitsForInput1 called with:', { articleId, selectedInputPQs });
-				
-				if (!articleId || !selectedInputPQs || selectedInputPQs.length === 0) {
-					console.log('Missing parameters, returning empty array');
-					return [];
-				}
-				
-				try {
-					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-					});
-					
-					if (!response.success) {
-						console.log('Validation failed');
-						return [];
-					}
-					
-					const pq = response.metadata.inputPQs.find((p: any) => p.symbol === selectedInputPQs[0]);
-					if (!pq) {
-						console.log('PQ not found:', selectedInputPQs[0]);
-						return [];
-					}
-					
-					const availableUnits = response.metadata.availableUnits[pq.categoryId] || [];
-					console.log('Available units for', pq.symbol, ':', availableUnits);
-					
-					return availableUnits.map((unit: string) => ({
-						name: unit,
-						value: unit,
-					}));
-					
-				} catch (error) {
-					console.error('Failed to load units:', error);
-					return [];
-				}
-			},
 
-			// Load available units for the second input PQ
-			async getUnitsForInput2(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const articleId = this.getCurrentNodeParameter('articleId') as string;
-				const selectedInputPQs = this.getCurrentNodeParameter('selectedInputPQs') as string[];
-				const credentials = await this.getCredentials('calcsLiveApi');
-				
-				console.log('getUnitsForInput2 called with:', { articleId, selectedInputPQs });
-				
-				if (!articleId || !selectedInputPQs || selectedInputPQs.length < 2) {
-					console.log('Missing parameters for input2, returning empty array');
-					return [];
-				}
-				
-				try {
-					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-					});
-					
-					if (!response.success) {
-						console.log('Validation failed for input2');
-						return [];
-					}
-					
-					const pq = response.metadata.inputPQs.find((p: any) => p.symbol === selectedInputPQs[1]);
-					if (!pq) {
-						console.log('PQ not found for input2:', selectedInputPQs[1]);
-						return [];
-					}
-					
-					const availableUnits = response.metadata.availableUnits[pq.categoryId] || [];
-					console.log('Available units for input2', pq.symbol, ':', availableUnits);
-					
-					return availableUnits.map((unit: string) => ({
-						name: unit,
-						value: unit,
-					}));
-					
-				} catch (error) {
-					console.error('Failed to load units for input2:', error);
-					return [];
-				}
-			},
-
-			// Load available units for the first output PQ
-			async getUnitsForOutput1(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const articleId = this.getCurrentNodeParameter('articleId') as string;
-				const selectedOutputPQs = this.getCurrentNodeParameter('selectedOutputPQs') as string[];
-				const credentials = await this.getCredentials('calcsLiveApi');
-				
-				if (!articleId || !selectedOutputPQs || selectedOutputPQs.length === 0) {
-					return [];
-				}
-				
-				try {
-					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-					});
-					
-					if (!response.success) {
-						return [];
-					}
-					
-					const pq = response.metadata.outputPQs.find((p: any) => p.symbol === selectedOutputPQs[0]);
-					if (!pq) {
-						return [];
-					}
-					
-					const availableUnits = response.metadata.availableUnits[pq.categoryId] || [];
-					return availableUnits.map((unit: string) => ({
-						name: unit,
-						value: unit,
-					}));
-					
-				} catch (error) {
-					console.error('Failed to load units:', error);
-					return [];
-				}
-			},
 		},
 	};
 
@@ -311,7 +185,7 @@ export class CalcsLive implements INodeType {
 						configMode: ['legacy'],
 					},
 				},
-				default: '{\n  "x": { "value": 150, "unit": "km" },\n  "y": { "value": 2, "unit": "h" }\n}',
+				default: '{\n  "x": { "value": 360, "unit": "km" },\n  "y": { "value": 10, "unit": "h" }\n}',
 				description: 'Physical quantities with values and units for the calculation',
 			},
 			{
@@ -329,7 +203,7 @@ export class CalcsLive implements INodeType {
 				default: '{\n  "s": { "unit": "km/h" }\n}',
 				description: 'Desired output units (optional). If not specified, default units will be used.',
 			},
-			// Enhanced mode fields
+			// Enhanced mode fields - simplified approach with better defaults
 			{
 				displayName: 'Input PQs',
 				name: 'selectedInputPQs',
@@ -362,91 +236,88 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select which output physical quantities to calculate. Enter Article ID first.',
+				description: 'Select which output physical quantities to calculate. Leave empty to get all outputs.',
 			},
-			// Dynamic input field generation - Input 1
+			// Simple individual fields for each PQ (no unit dropdowns for now)
 			{
 				displayName: 'Input (x) Value',
-				name: 'inputValue1',
+				name: 'inputValue_x',
 				type: 'string',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
 						resource: ['calculation'],
 						configMode: ['enhanced'],
+						selectedInputPQs: ['x'],
 					},
 				},
-				default: '',
-				placeholder: '150 or {{ $json.value }}',
-				description: 'Value for the first selected input PQ (supports expressions)',
+				default: '360',
+				placeholder: '360 or {{ $json.value }}',
+				description: 'Value for input PQ x (supports expressions)',
 			},
 			{
 				displayName: 'Input (x) Unit',
-				name: 'inputUnit1',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getUnitsForInput1',
-				},
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-					},
-				},
-				default: '',
-				description: 'Unit for the first selected input PQ',
-			},
-			// Dynamic input field generation - Input 2
-			{
-				displayName: 'Input (y) Value',
-				name: 'inputValue2',
+				name: 'inputUnit_x',
 				type: 'string',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
 						resource: ['calculation'],
 						configMode: ['enhanced'],
+						selectedInputPQs: ['x'],
 					},
 				},
-				default: '',
-				placeholder: '2 or {{ $json.time }}',
-				description: 'Value for the second selected input PQ (supports expressions)',
+				default: 'km',
+				placeholder: 'km',
+				description: 'Unit for input PQ x (e.g., m, km, ft)',
+			},
+			{
+				displayName: 'Input (y) Value',
+				name: 'inputValue_y',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['execute'],
+						resource: ['calculation'],
+						configMode: ['enhanced'],
+						selectedInputPQs: ['y'],
+					},
+				},
+				default: '3',
+				placeholder: '3 or {{ $json.time }}',
+				description: 'Value for input PQ y (supports expressions)',
 			},
 			{
 				displayName: 'Input (y) Unit',
-				name: 'inputUnit2',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getUnitsForInput2',
-				},
+				name: 'inputUnit_y',
+				type: 'string',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
 						resource: ['calculation'],
 						configMode: ['enhanced'],
+						selectedInputPQs: ['y'],
 					},
 				},
-				default: '',
-				description: 'Unit for the second selected input PQ',
+				default: 'h',
+				placeholder: 'h',
+				description: 'Unit for input PQ y (e.g., s, h, day)',
 			},
-			// Dynamic output field generation - Output 1
 			{
 				displayName: 'Output (s) Unit',
-				name: 'outputUnit1',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getUnitsForOutput1',
-				},
+				name: 'outputUnit_s',
+				type: 'string',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
 						resource: ['calculation'],
 						configMode: ['enhanced'],
+						selectedOutputPQs: ['s'],
 					},
 				},
-				default: '',
-				description: 'Desired unit for the first selected output PQ',
+				default: 'mph[mile/h]',
+				placeholder: 'mph[mile/h]',
+				description: 'Desired unit for output PQ s (e.g., km/h, mph[mile/h], m/s)',
 			},
 		],
 	};
@@ -500,38 +371,66 @@ export class CalcsLive implements INodeType {
 							const selectedInputPQs = this.getNodeParameter('selectedInputPQs', i) as string[];
 							const selectedOutputPQs = this.getNodeParameter('selectedOutputPQs', i) as string[];
 							
-							// Build inputs object from enhanced fields
+							// Build inputs object from individual PQ fields
 							inputs = {};
-							if (selectedInputPQs.length > 0) {
-								// For now, use hardcoded field names (simplified for MVP)
-								const inputValue1 = this.getNodeParameter('inputValue1', i) as string;
-								const inputUnit1 = this.getNodeParameter('inputUnit1', i) as string;
-								const inputValue2 = this.getNodeParameter('inputValue2', i) as string;
-								const inputUnit2 = this.getNodeParameter('inputUnit2', i) as string;
-								
-								if (selectedInputPQs[0] && inputValue1) {
-									(inputs as any)[selectedInputPQs[0]] = {
-										value: parseFloat(inputValue1) || inputValue1,
-										unit: inputUnit1,
-									};
-								}
-								if (selectedInputPQs[1] && inputValue2) {
-									(inputs as any)[selectedInputPQs[1]] = {
-										value: parseFloat(inputValue2) || inputValue2,
-										unit: inputUnit2,
-									};
+							
+							// Handle input PQ x
+							if (selectedInputPQs.includes('x')) {
+								try {
+									const inputValue_x = this.getNodeParameter('inputValue_x', i) as string;
+									const inputUnit_x = this.getNodeParameter('inputUnit_x', i) as string;
+									
+									if (inputValue_x) {
+										(inputs as any)['x'] = {
+											value: parseFloat(inputValue_x) || inputValue_x,
+											unit: inputUnit_x || 'km',
+										};
+									}
+								} catch (error) {
+									console.log('Could not get parameters for input x:', error);
 								}
 							}
 							
-							// Build outputs object from enhanced fields
+							// Handle input PQ y
+							if (selectedInputPQs.includes('y')) {
+								try {
+									const inputValue_y = this.getNodeParameter('inputValue_y', i) as string;
+									const inputUnit_y = this.getNodeParameter('inputUnit_y', i) as string;
+									
+									if (inputValue_y) {
+										(inputs as any)['y'] = {
+											value: parseFloat(inputValue_y) || inputValue_y,
+											unit: inputUnit_y || 'h',
+										};
+									}
+								} catch (error) {
+									console.log('Could not get parameters for input y:', error);
+								}
+							}
+							
+							// Build outputs object from individual PQ fields
+							outputs = undefined;
 							if (selectedOutputPQs.length > 0) {
-								const outputUnit1 = this.getNodeParameter('outputUnit1', i) as string;
-								
 								outputs = {};
-								if (selectedOutputPQs[0] && outputUnit1) {
-									(outputs as any)[selectedOutputPQs[0]] = {
-										unit: outputUnit1,
-									};
+								
+								// Handle output PQ s
+								if (selectedOutputPQs.includes('s')) {
+									try {
+										const outputUnit_s = this.getNodeParameter('outputUnit_s', i) as string;
+										
+										if (outputUnit_s) {
+											(outputs as any)['s'] = {
+												unit: outputUnit_s,
+											};
+										}
+									} catch (error) {
+										console.log('Could not get parameters for output s:', error);
+									}
+								}
+								
+								// If no output units specified, don't send outputs parameter (let API return all)
+								if (Object.keys(outputs).length === 0) {
+									outputs = undefined;
 								}
 							}
 						}
