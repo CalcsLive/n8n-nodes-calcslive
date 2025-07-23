@@ -28,6 +28,7 @@
   "packageManager": "pnpm@7.18.0",
   "main": "index.js",
   "scripts": {
+    "b": "tsc && gulp build:icons",
     "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",

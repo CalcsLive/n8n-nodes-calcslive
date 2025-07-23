@@ -15,41 +15,108 @@ export class CalcsLive implements INodeType {
 			// Load available input PQs from validate endpoint
 			async getInputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
-				const credentials = await this.getCredentials('calcsLiveApi');
+				
+				console.log('getInputPQs called with articleId:', articleId);
 				
 				if (!articleId) {
-					return [];
+					console.log('No articleId provided, returning empty array');
+					return [{ name: 'Enter Article ID first', value: '' }];
 				}
 				
 				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
 					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const url = `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
+					
+					console.log('Making request to:', url);
+					
 					const response = await this.helpers.httpRequest({
 						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+						url,
 					});
 					
+					console.log('API response:', response);
+					
 					if (!response.success) {
-						throw new Error(response.message || 'Failed to load PQs');
+						console.error('API returned error:', response.message);
+						return [{ name: `Error: ${response.message || 'Failed to load PQs'}`, value: '' }];
 					}
 					
-					return response.metadata.inputPQs.map((pq: any) => ({
-						name: pq.symbol,
+					if (!response.metadata || !response.metadata.inputPQs) {
+						console.error('No inputPQs in response metadata');
+						return [{ name: 'No input PQs found', value: '' }];
+					}
+					
+					const options = response.metadata.inputPQs.map((pq: any) => ({
+						name: `${pq.symbol} (${pq.defaultValue} ${pq.defaultUnit})`,
 						value: pq.symbol,
 					}));
 					
-				} catch (error) {
+					console.log('Returning input PQ options:', options);
+					return options;
+					
+				} catch (error: any) {
 					console.error('Failed to load input PQs:', error);
-					return [];
+					return [{ name: `Error: ${error.message || 'Unknown error'}`, value: '' }];
 				}
 			},
 
 			// Load available output PQs from validate endpoint
 			async getOutputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
+				
+				console.log('getOutputPQs called with articleId:', articleId);
+				
+				if (!articleId) {
+					console.log('No articleId provided for outputs');
+					return [{ name: 'Enter Article ID first', value: '' }];
+				}
+				
+				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
+					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const url = `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
+					
+					console.log('Making request to:', url);
+					
+					const response = await this.helpers.httpRequest({
+						method: 'GET',
+						url,
+					});
+					
+					console.log('API response for outputs:', response);
+					
+					if (!response.success) {
+						console.error('API returned error for outputs:', response.message);
+						return [{ name: `Error: ${response.message || 'Failed to load PQs'}`, value: '' }];
+					}
+					
+					if (!response.metadata || !response.metadata.outputPQs) {
+						console.error('No outputPQs in response metadata');
+						return [{ name: 'No output PQs found', value: '' }];
+					}
+					
+					const options = response.metadata.outputPQs.map((pq: any) => ({
+						name: `${pq.symbol} (default: ${pq.defaultUnit})`,
+						value: pq.symbol,
+					}));
+					
+					console.log('Returning output PQ options:', options);
+					return options;
+					
+				} catch (error: any) {
+					console.error('Failed to load output PQs:', error);
+					return [{ name: `Error: ${error.message || 'Unknown error'}`, value: '' }];
+				}
+			},
+
+			// Load PQ metadata for defaults (used internally)
+			async getPQMetadata(this: ILoadOptionsFunctions): Promise<any> {
+				const articleId = this.getCurrentNodeParameter('articleId') as string;
 				const credentials = await this.getCredentials('calcsLiveApi');
 				
 				if (!articleId) {
-					return [];
+					return null;
 				}
 				
 				try {
@@ -60,20 +127,16 @@ export class CalcsLive implements INodeType {
 					});
 					
 					if (!response.success) {
-						throw new Error(response.message || 'Failed to load PQs');
+						return null;
 					}
 					
-					return response.metadata.outputPQs.map((pq: any) => ({
-						name: pq.symbol,
-						value: pq.symbol,
-					}));
+					return response.metadata;
 					
 				} catch (error) {
-					console.error('Failed to load output PQs:', error);
-					return [];
+					console.error('Failed to load PQ metadata:', error);
+					return null;
 				}
 			},
-
 
 		},
 	};
@@ -172,12 +235,11 @@ export class CalcsLive implements INodeType {
 				default: 'enhanced',
 				description: 'Choose configuration mode',
 			},
-			// Legacy JSON mode fields
+			// Legacy mode - auto-uses all input PQs with defaults, returns all outputs
 			{
-				displayName: 'Inputs',
-				name: 'inputs',
-				type: 'json',
-				required: true,
+				displayName: 'Legacy Mode Info',
+				name: 'legacyInfo',
+				type: 'notice',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
@@ -185,14 +247,7 @@ export class CalcsLive implements INodeType {
 						configMode: ['legacy'],
 					},
 				},
-				default: '{\n  "x": { "value": 360, "unit": "km" },\n  "y": { "value": 10, "unit": "h" }\n}',
-				description: 'Physical quantities with values and units for the calculation',
-			},
-			{
-				displayName: 'Outputs',
-				name: 'outputs',
-				type: 'json',
-				required: false,
+				default: '',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
@@ -200,12 +255,14 @@ export class CalcsLive implements INodeType {
 						configMode: ['legacy'],
 					},
 				},
-				default: '{\n  "s": { "unit": "km/h" }\n}',
-				description: 'Desired output units (optional). If not specified, default units will be used.',
+				typeOptions: {
+					theme: 'info',
+				},
+				description: 'Legacy mode automatically uses all available input PQs with their default values and returns all outputs. No manual configuration needed.',
 			},
-			// Enhanced mode fields - simplified approach with better defaults
+			// Enhanced mode fields - use multiOptions for PQ selection with dynamic fields
 			{
-				displayName: 'Input PQs',
+				displayName: 'Select Input PQs',
 				name: 'selectedInputPQs',
 				type: 'multiOptions',
 				typeOptions: {
@@ -219,10 +276,10 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select which input physical quantities to provide values for. Enter Article ID first.',
+				description: 'Select which input physical quantities to provide values for. Default values and units are shown in options.',
 			},
 			{
-				displayName: 'Output PQs',
+				displayName: 'Select Output PQs',
 				name: 'selectedOutputPQs',
 				type: 'multiOptions',
 				typeOptions: {
@@ -236,88 +293,7 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select which output physical quantities to calculate. Leave empty to get all outputs.',
-			},
-			// Simple individual fields for each PQ (no unit dropdowns for now)
-			{
-				displayName: 'Input (x) Value',
-				name: 'inputValue_x',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						selectedInputPQs: ['x'],
-					},
-				},
-				default: '360',
-				placeholder: '360 or {{ $json.value }}',
-				description: 'Value for input PQ x (supports expressions)',
-			},
-			{
-				displayName: 'Input (x) Unit',
-				name: 'inputUnit_x',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						selectedInputPQs: ['x'],
-					},
-				},
-				default: 'km',
-				placeholder: 'km',
-				description: 'Unit for input PQ x (e.g., m, km, ft)',
-			},
-			{
-				displayName: 'Input (y) Value',
-				name: 'inputValue_y',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						selectedInputPQs: ['y'],
-					},
-				},
-				default: '3',
-				placeholder: '3 or {{ $json.time }}',
-				description: 'Value for input PQ y (supports expressions)',
-			},
-			{
-				displayName: 'Input (y) Unit',
-				name: 'inputUnit_y',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						selectedInputPQs: ['y'],
-					},
-				},
-				default: 'h',
-				placeholder: 'h',
-				description: 'Unit for input PQ y (e.g., s, h, day)',
-			},
-			{
-				displayName: 'Output (s) Unit',
-				name: 'outputUnit_s',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						selectedOutputPQs: ['s'],
-					},
-				},
-				default: 'mph[mile/h]',
-				placeholder: 'mph[mile/h]',
-				description: 'Desired unit for output PQ s (e.g., km/h, mph[mile/h], m/s)',
+				description: 'Select which output physical quantities to calculate. Leave empty to get all outputs. Default units are shown in options.',
 			},
 		],
 	};
@@ -367,64 +343,53 @@ export class CalcsLive implements INodeType {
 								});
 							}
 						} else {
-							// Enhanced mode - build inputs/outputs from individual fields
+							// Enhanced mode - build inputs/outputs from multiOptions selections
 							const selectedInputPQs = this.getNodeParameter('selectedInputPQs', i) as string[];
 							const selectedOutputPQs = this.getNodeParameter('selectedOutputPQs', i) as string[];
 							
-							// Build inputs object from individual PQ fields
+							// Get PQ metadata to use defaults
+							const creds = await this.getCredentials('calcsLiveApi');
+							const baseUrl = creds.baseUrl || 'https://www.calcs.live';
+							let metadata: any = null;
+							
+							try {
+								const response = await this.helpers.httpRequest({
+									method: 'GET',
+									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${creds.apiKey}`,
+								});
+								
+								if (response.success) {
+									metadata = response.metadata;
+								}
+							} catch (error) {
+								console.error('Failed to get metadata for defaults:', error);
+							}
+							
+							// Build inputs object from selected PQs using defaults
 							inputs = {};
-							
-							// Handle input PQ x
-							if (selectedInputPQs.includes('x')) {
-								try {
-									const inputValue_x = this.getNodeParameter('inputValue_x', i) as string;
-									const inputUnit_x = this.getNodeParameter('inputUnit_x', i) as string;
-									
-									if (inputValue_x) {
-										(inputs as any)['x'] = {
-											value: parseFloat(inputValue_x) || inputValue_x,
-											unit: inputUnit_x || 'km',
+							if (selectedInputPQs && selectedInputPQs.length > 0 && metadata) {
+								for (const pqSymbol of selectedInputPQs) {
+									const pqData = metadata.inputPQs.find((pq: any) => pq.symbol === pqSymbol);
+									if (pqData) {
+										(inputs as any)[pqSymbol] = {
+											value: pqData.defaultValue || 0,
+											unit: pqData.defaultUnit || '',
 										};
 									}
-								} catch (error) {
-									console.log('Could not get parameters for input x:', error);
 								}
 							}
 							
-							// Handle input PQ y
-							if (selectedInputPQs.includes('y')) {
-								try {
-									const inputValue_y = this.getNodeParameter('inputValue_y', i) as string;
-									const inputUnit_y = this.getNodeParameter('inputUnit_y', i) as string;
-									
-									if (inputValue_y) {
-										(inputs as any)['y'] = {
-											value: parseFloat(inputValue_y) || inputValue_y,
-											unit: inputUnit_y || 'h',
-										};
-									}
-								} catch (error) {
-									console.log('Could not get parameters for input y:', error);
-								}
-							}
-							
-							// Build outputs object from individual PQ fields
+							// Build outputs object from selected PQs using defaults
 							outputs = undefined;
-							if (selectedOutputPQs.length > 0) {
+							if (selectedOutputPQs && selectedOutputPQs.length > 0 && metadata) {
 								outputs = {};
 								
-								// Handle output PQ s
-								if (selectedOutputPQs.includes('s')) {
-									try {
-										const outputUnit_s = this.getNodeParameter('outputUnit_s', i) as string;
-										
-										if (outputUnit_s) {
-											(outputs as any)['s'] = {
-												unit: outputUnit_s,
-											};
-										}
-									} catch (error) {
-										console.log('Could not get parameters for output s:', error);
+								for (const pqSymbol of selectedOutputPQs) {
+									const pqData = metadata.outputPQs.find((pq: any) => pq.symbol === pqSymbol);
+									if (pqData) {
+										(outputs as any)[pqSymbol] = {
+											unit: pqData.defaultUnit || '',
+										};
 									}
 								}
 								
