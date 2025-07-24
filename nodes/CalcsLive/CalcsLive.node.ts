@@ -48,8 +48,8 @@ export class CalcsLive implements INodeType {
 					}
 					
 					const options = response.metadata.inputPQs.map((pq: any) => ({
-						name: `${pq.symbol} (${pq.defaultValue} ${pq.defaultUnit})`,
-						value: pq.symbol,
+						name: `${pq.symbol || 'Unknown'} (${pq.defaultValue || 0} ${pq.defaultUnit || ''})`,
+						value: pq.symbol || '',
 					}));
 					
 					console.log('Returning input PQ options:', options);
@@ -137,6 +137,7 @@ export class CalcsLive implements INodeType {
 					return null;
 				}
 			},
+
 
 		},
 	};
@@ -235,11 +236,27 @@ export class CalcsLive implements INodeType {
 				default: 'enhanced',
 				description: 'Choose configuration mode',
 			},
-			// Legacy mode - auto-uses all input PQs with defaults, returns all outputs
+			// Legacy mode - simple JSON input
 			{
-				displayName: 'Legacy Mode Info',
-				name: 'legacyInfo',
-				type: 'notice',
+				displayName: 'Inputs',
+				name: 'inputs',
+				type: 'json',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['execute'],
+						resource: ['calculation'],
+						configMode: ['legacy'],
+					},
+				},
+				default: '{\n  "D": { "value": 360, "unit": "km" },\n  "t": { "value": 10, "unit": "h" }\n}',
+				description: 'Physical quantities with values and units for the calculation.',
+			},
+			{
+				displayName: 'Outputs (Optional)',
+				name: 'outputs',
+				type: 'json',
+				required: false,
 				displayOptions: {
 					show: {
 						operation: ['execute'],
@@ -248,17 +265,7 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: '',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['legacy'],
-					},
-				},
-				typeOptions: {
-					theme: 'info',
-				},
-				description: 'Legacy mode automatically uses all available input PQs with their default values and returns all outputs. No manual configuration needed.',
+				description: 'Specify output units (optional). Leave empty to get all outputs with default units.',
 			},
 			// Enhanced mode fields - use multiOptions for PQ selection with dynamic fields
 			{
@@ -321,7 +328,7 @@ export class CalcsLive implements INodeType {
 						let outputs: object | undefined;
 
 						if (configMode === 'legacy') {
-							// Legacy JSON mode
+							// Legacy mode - manual JSON input with optional outputs
 							const inputsRaw = this.getNodeParameter('inputs', i) as string;
 							const outputsRaw = this.getNodeParameter('outputs', i) as string;
 							
@@ -334,6 +341,7 @@ export class CalcsLive implements INodeType {
 								});
 							}
 							
+							// Parse outputs if provided, otherwise return all outputs
 							try {
 								outputs = outputsRaw && outputsRaw.trim() ? JSON.parse(outputsRaw) : undefined;
 							} catch (error) {
