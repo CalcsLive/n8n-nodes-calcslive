@@ -36,6 +36,8 @@ export class CalcsLive implements INodeType {
 					});
 					
 					console.log('API response:', response);
+					console.log('Response metadata:', response.metadata);
+					console.log('Input PQs:', response.metadata?.inputPQs);
 					
 					if (!response.success) {
 						console.error('API returned error:', response.message);
@@ -97,8 +99,8 @@ export class CalcsLive implements INodeType {
 					}
 					
 					const options = response.metadata.outputPQs.map((pq: any) => ({
-						name: `${pq.symbol} (default: ${pq.defaultUnit})`,
-						value: pq.symbol,
+						name: `${pq.symbol || 'Unknown'} (default: ${pq.defaultUnit || ''})`,
+						value: pq.symbol || '',
 					}));
 					
 					console.log('Returning output PQ options:', options);
@@ -267,7 +269,7 @@ export class CalcsLive implements INodeType {
 				default: '',
 				description: 'Specify output units (optional). Leave empty to get all outputs with default units.',
 			},
-			// Enhanced mode fields - use multiOptions for PQ selection with dynamic fields
+			// Enhanced mode fields
 			{
 				displayName: 'Select Input PQs',
 				name: 'selectedInputPQs',
@@ -283,7 +285,7 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select which input physical quantities to provide values for. Default values and units are shown in options.',
+				description: 'Select input physical quantities. Default values and units shown in parentheses.',
 			},
 			{
 				displayName: 'Select Output PQs',
@@ -300,12 +302,16 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select which output physical quantities to calculate. Leave empty to get all outputs. Default units are shown in options.',
+				description: 'Select output physical quantities. Leave empty to get all outputs.',
 			},
 		],
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		console.log('\n🚀 === NEW TEST EXECUTION STARTED ===');
+		console.log('Timestamp:', new Date().toISOString());
+		console.log('=========================================\n');
+		
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 		const resource = this.getNodeParameter('resource', 0);
@@ -366,6 +372,11 @@ export class CalcsLive implements INodeType {
 									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${creds.apiKey}`,
 								});
 								
+								console.log('Validate API response for enhanced mode:', response);
+								console.log('Validate metadata:', response.metadata);
+								console.log('Validate inputPQs:', response.metadata?.inputPQs);
+								console.log('Validate outputPQs:', response.metadata?.outputPQs);
+								
 								if (response.success) {
 									metadata = response.metadata;
 								}
@@ -375,17 +386,28 @@ export class CalcsLive implements INodeType {
 							
 							// Build inputs object from selected PQs using defaults
 							inputs = {};
+							console.log('Selected input PQs:', selectedInputPQs);
+							console.log('Available metadata:', metadata);
+							
 							if (selectedInputPQs && selectedInputPQs.length > 0 && metadata) {
 								for (const pqSymbol of selectedInputPQs) {
 									const pqData = metadata.inputPQs.find((pq: any) => pq.symbol === pqSymbol);
+									console.log(`Finding data for PQ ${pqSymbol}:`, pqData);
+									
 									if (pqData) {
+										// Use calc's original values if available, otherwise reasonable defaults
+										const defaultValue = pqData.faceValue || 1;
+										
 										(inputs as any)[pqSymbol] = {
-											value: pqData.defaultValue || 0,
-											unit: pqData.defaultUnit || '',
+											value: defaultValue,
+											unit: pqData.unit || '', // Use 'unit' not 'defaultUnit'
 										};
+										console.log(`Built input for ${pqSymbol}:`, (inputs as any)[pqSymbol]);
 									}
 								}
 							}
+							
+							console.log('Final built inputs object:', inputs);
 							
 							// Build outputs object from selected PQs using defaults
 							outputs = undefined;
@@ -396,7 +418,7 @@ export class CalcsLive implements INodeType {
 									const pqData = metadata.outputPQs.find((pq: any) => pq.symbol === pqSymbol);
 									if (pqData) {
 										(outputs as any)[pqSymbol] = {
-											unit: pqData.defaultUnit || '',
+											unit: pqData.unit || '', // Use 'unit' not 'defaultUnit'
 										};
 									}
 								}
