@@ -21,6 +21,7 @@ interface PQInfo {
   symbol: string;
   description?: string;
   unit: string;
+  faceValue?: number;
   baseUnit: string;
   categoryId: string;
   type: 'input' | 'output';
@@ -166,6 +167,7 @@ export default defineEventHandler(async (event) => {
         symbol: pq.sym,
         description: pq.description,
         unit: pq.faceUnit,
+        faceValue: pq.faceValue,
         baseUnit: pq.baseUnit,
         categoryId: pq.categoryId,
         type: pq.expression ? 'output' : 'input',
