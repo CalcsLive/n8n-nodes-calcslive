@@ -436,10 +436,10 @@ export class CalcsLive implements INodeType {
 				default: [],
 				description: 'Select output physical quantities to specify units for. Selected symbols will show unit fields below.',
 			},
-			// Dynamic input PQ configuration - shows only when input PQs are selected
+			// Input PQ value/unit override fields (optional - only use if you want to override defaults)
 			{
-				displayName: 'Configure Input Values & Units',
-				name: 'inputPQs',
+				displayName: 'Input PQ Overrides (Optional)',
+				name: 'inputPQOverrides',
 				type: 'fixedCollection',
 				typeOptions: {
 					multipleValues: true,
@@ -452,45 +452,39 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: {},
-				placeholder: 'Configure selected input PQs',
+				placeholder: 'Override input PQ values/units',
 				options: [
 					{
-						name: 'pq',
-						displayName: 'Physical Quantity',
+						name: 'override',
+						displayName: 'PQ Override',
 						values: [
 							{
 								displayName: 'Symbol',
 								name: 'symbol',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getInputPQs',
-									loadOptionsDependsOn: ['articleId'],
-								},
+								type: 'string',
 								default: '',
-								description: 'Physical quantity symbol (auto-populated from selection above)',
+								placeholder: 'e.g., D, t, v',
+								description: 'Symbol to override (must match selected input PQ above)',
 							},
 							{
 								displayName: 'Value',
 								name: 'value',
 								type: 'number',
 								default: 1,
-								description: 'Numeric value (defaults to calc face value)',
+								description: 'Custom value (overrides calc default)',
 							},
 							{
 								displayName: 'Unit',
 								name: 'unit',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getUnitsForSymbol',
-									loadOptionsDependsOn: ['articleId', 'symbol'],
-								},
+								type: 'string',
 								default: '',
-								description: 'Unit (defaults to calc default unit)',
+								placeholder: 'e.g., km, m, h, s',
+								description: 'Custom unit (overrides calc default)',
 							},
 						],
 					},
 				],
-				description: 'Configure values and units for selected input PQs. Fields auto-populate with calc defaults but can be modified.',
+				description: 'Optional: Override default values/units for specific input PQs. Only add rows if you want to change defaults.',
 			},
 			// Dynamic output PQ configuration - shows only when output PQs are selected
 			{
@@ -594,18 +588,18 @@ export class CalcsLive implements INodeType {
 								});
 							}
 						} else {
-							// Enhanced mode - combine multiOptions selection with fixedCollection overrides
+							// Enhanced mode - combine multiOptions selection with override values
 							const selectedInputPQs = this.getNodeParameter('selectedInputPQs', i) as string[];
 							const selectedOutputPQs = this.getNodeParameter('selectedOutputPQs', i) as string[];
-							const inputPQsConfig = this.getNodeParameter('inputPQs', i) as any;
+							const inputPQOverrides = this.getNodeParameter('inputPQOverrides', i) as any;
 							const outputPQsConfig = this.getNodeParameter('outputPQs', i) as any;
 							
 							console.log('Selected Input PQs:', selectedInputPQs);
 							console.log('Selected Output PQs:', selectedOutputPQs);
-							console.log('Input PQs config:', inputPQsConfig);
+							console.log('Input PQ overrides:', inputPQOverrides);
 							console.log('Output PQs config:', outputPQsConfig);
 							
-							// Build inputs object - start with multiOptions defaults, then apply fixedCollection overrides
+							// Build inputs object - start with multiOptions defaults, then apply overrides
 							inputs = {};
 							if (selectedInputPQs && Array.isArray(selectedInputPQs)) {
 								for (const pqJson of selectedInputPQs) {
@@ -615,18 +609,10 @@ export class CalcsLive implements INodeType {
 										let value = pqInfo.faceValue || 1;
 										let unit = pqInfo.unit || '';
 										
-										// Check if user provided custom values in fixedCollection
-										if (inputPQsConfig && inputPQsConfig.pq && Array.isArray(inputPQsConfig.pq)) {
-											const userOverride = inputPQsConfig.pq.find((pq: any) => {
-												// Handle both plain symbol and JSON-embedded symbol
-												let pqSymbol = pq.symbol;
-												try {
-													const parsed = JSON.parse(pq.symbol);
-													pqSymbol = parsed.symbol;
-												} catch (e) {
-													// symbol is plain string
-												}
-												return pqSymbol === symbol;
+										// Check if user provided override values
+										if (inputPQOverrides && inputPQOverrides.override && Array.isArray(inputPQOverrides.override)) {
+											const userOverride = inputPQOverrides.override.find((override: any) => {
+												return override.symbol === symbol;
 											});
 											
 											if (userOverride) {
