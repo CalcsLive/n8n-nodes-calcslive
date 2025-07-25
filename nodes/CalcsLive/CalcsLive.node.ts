@@ -32,9 +32,9 @@ export class CalcsLive implements INodeType {
 						return [{ name: 'No input PQs found', value: '' }];
 					}
 					
-					// Use real PQ data with faceValue and unit - this will trigger UI refresh
+					// Show just the symbol names, embed metadata for later use
 					const options = response.metadata.inputPQs.map((pq: any) => ({
-						name: `${pq.symbol} (${pq.faceValue || 'default'} ${pq.unit})`,
+						name: pq.symbol, // Just the symbol (D, t, x, y, etc.)
 						value: JSON.stringify({
 							symbol: pq.symbol,
 							faceValue: pq.faceValue,
@@ -71,7 +71,7 @@ export class CalcsLive implements INodeType {
 					}
 					
 					const options = response.metadata.outputPQs.map((pq: any) => ({
-						name: `${pq.symbol} (default: ${pq.unit})`,
+						name: pq.symbol, // Just the symbol (v, s, result, etc.)
 						value: JSON.stringify({
 							symbol: pq.symbol,
 							unit: pq.unit,
@@ -263,7 +263,21 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select input physical quantities to configure. Values and units shown from the calc.',
+				description: 'Select input physical quantities to configure. Configure values and units below.',
+			},
+			{
+				displayName: 'Input Configuration (JSON)',
+				name: 'inputConfiguration',
+				type: 'json',
+				displayOptions: {
+					show: {
+						operation: ['execute'],
+						resource: ['calculation'],
+						configMode: ['enhanced'],
+					},
+				},
+				default: '{\n  "symbol": { "value": 100, "unit": "unit" }\n}',
+				description: 'Configure values and units for selected input PQs. Symbol names will auto-populate based on your selections above.',
 			},
 			{
 				displayName: 'Select Output PQs',
@@ -280,7 +294,21 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select output physical quantities. Leave empty to get all outputs with default units.',
+				description: 'Select output physical quantities. Configure units below.',
+			},
+			{
+				displayName: 'Output Configuration (JSON)',
+				name: 'outputConfiguration',
+				type: 'json',
+				displayOptions: {
+					show: {
+						operation: ['execute'],
+						resource: ['calculation'],
+						configMode: ['enhanced'],
+					},
+				},
+				default: '{\n  "symbol": { "unit": "unit" }\n}',
+				description: 'Configure output units for selected output PQs. Leave empty to use default units.',
 			},
 		],
 	};
@@ -335,64 +363,68 @@ export class CalcsLive implements INodeType {
 								});
 							}
 						} else {
-							// Enhanced mode - build inputs/outputs from dynamic multiOptions selections
+							// Enhanced mode - use multiOptions for PQ selection + JSON for configuration
 							const selectedInputPQs = this.getNodeParameter('selectedInputPQs', i) as string[];
 							const selectedOutputPQs = this.getNodeParameter('selectedOutputPQs', i) as string[];
+							const inputConfigRaw = this.getNodeParameter('inputConfiguration', i) as string;
+							const outputConfigRaw = this.getNodeParameter('outputConfiguration', i) as string;
 							
-							// Get PQ metadata to use real faceValues and units
-							const creds = await this.getCredentials('calcsLiveApi');
-							const baseUrl = creds.baseUrl || 'https://www.calcs.live';
-							let metadata: any = null;
+							// Parse configuration JSON
+							let inputConfig: any = {};
+							let outputConfig: any = {};
 							
 							try {
-								const response = await this.helpers.httpRequest({
-									method: 'GET',
-									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${creds.apiKey}`,
-								});
-								
-								if (response.success) {
-									metadata = response.metadata;
-								}
+								inputConfig = inputConfigRaw ? JSON.parse(inputConfigRaw) : {};
 							} catch (error) {
-								console.error('Failed to get metadata for enhanced mode:', error);
+								console.warn('Invalid input configuration JSON, using defaults');
 							}
 							
-							// Build inputs object from selected PQs using embedded metadata
+							try {
+								outputConfig = outputConfigRaw ? JSON.parse(outputConfigRaw) : {};
+							} catch (error) {
+								console.warn('Invalid output configuration JSON, using defaults');
+							}
+							
+							// Build inputs object from selected PQs and user configuration
 							inputs = {};
 							if (selectedInputPQs && selectedInputPQs.length > 0) {
-								for (const pqData of selectedInputPQs) {
+								for (const pqDataStr of selectedInputPQs) {
 									try {
 										// Parse the embedded JSON metadata from the multiOptions value
-										const pqInfo = JSON.parse(pqData);
+										const pqInfo = JSON.parse(pqDataStr);
 										const symbol = pqInfo.symbol;
 										
+										// Use user configuration if available, otherwise use defaults from PQ metadata
+										const userConfig = inputConfig[symbol];
 										(inputs as any)[symbol] = {
-											value: pqInfo.faceValue || 1,
-											unit: pqInfo.unit || '',
+											value: userConfig?.value || pqInfo.faceValue || 1,
+											unit: userConfig?.unit || pqInfo.unit || '',
 										};
 										console.log(`Built input for ${symbol}:`, (inputs as any)[symbol]);
 									} catch (error) {
-										console.error('Failed to parse PQ data:', pqData, error);
+										console.error('Failed to parse PQ data:', pqDataStr, error);
 									}
 								}
 							}
 							
-							// Build outputs object from selected PQs using embedded metadata
+							// Build outputs object from selected PQs and user configuration
 							outputs = undefined;
 							if (selectedOutputPQs && selectedOutputPQs.length > 0) {
 								outputs = {};
-								for (const pqData of selectedOutputPQs) {
+								for (const pqDataStr of selectedOutputPQs) {
 									try {
 										// Parse the embedded JSON metadata from the multiOptions value
-										const pqInfo = JSON.parse(pqData);
+										const pqInfo = JSON.parse(pqDataStr);
 										const symbol = pqInfo.symbol;
 										
+										// Use user configuration if available, otherwise use defaults from PQ metadata
+										const userConfig = outputConfig[symbol];
 										(outputs as any)[symbol] = {
-											unit: pqInfo.unit || '',
+											unit: userConfig?.unit || pqInfo.unit || '',
 										};
 										console.log(`Built output for ${symbol}:`, (outputs as any)[symbol]);
 									} catch (error) {
-										console.error('Failed to parse output PQ data:', pqData, error);
+										console.error('Failed to parse output PQ data:', pqDataStr, error);
 									}
 								}
 								
