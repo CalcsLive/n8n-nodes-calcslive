@@ -254,6 +254,7 @@ export class CalcsLive implements INodeType {
 				type: 'multiOptions',
 				typeOptions: {
 					loadOptionsMethod: 'getInputPQs',
+					loadOptionsDependsOn: ['articleId'],
 				},
 				displayOptions: {
 					show: {
@@ -285,6 +286,7 @@ export class CalcsLive implements INodeType {
 				type: 'multiOptions',
 				typeOptions: {
 					loadOptionsMethod: 'getOutputPQs',
+					loadOptionsDependsOn: ['articleId'],
 				},
 				displayOptions: {
 					show: {
