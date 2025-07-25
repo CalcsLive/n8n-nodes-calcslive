@@ -71,6 +71,44 @@ export class CalcsLive implements INodeType {
 				}
 			},
 			
+			// Load input PQs for multiOptions with embedded metadata
+			async getInputPQsForMultiOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const articleId = this.getCurrentNodeParameter('articleId') as string;
+				
+				if (!articleId) {
+					return [{ name: 'Enter Article ID first', value: '' }];
+				}
+				
+				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
+					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const response = await this.helpers.httpRequest({
+						method: 'GET',
+						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+					});
+					
+					if (!response.success || !response.metadata?.inputPQs) {
+						return [{ name: 'No input PQs found', value: '' }];
+					}
+					
+					// Return symbols with embedded metadata for later use
+					const options = response.metadata.inputPQs.map((pq: any) => ({
+						name: pq.symbol, // Just the symbol (D, t, x, y, etc.)
+						value: JSON.stringify({
+							symbol: pq.symbol,
+							faceValue: pq.faceValue,
+							unit: pq.unit,
+							categoryId: pq.categoryId
+						}), // Embed metadata in value for later use
+					}));
+					
+					return options;
+					
+				} catch (error: any) {
+					return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
+				}
+			},
+			
 			// Load available input PQs from validate endpoint - truly dynamic
 			async getInputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
@@ -109,6 +147,42 @@ export class CalcsLive implements INodeType {
 				}
 			},
 
+			// Load output PQs for multiOptions with embedded metadata
+			async getOutputPQsForMultiOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const articleId = this.getCurrentNodeParameter('articleId') as string;
+				
+				if (!articleId) {
+					return [{ name: 'Enter Article ID first', value: '' }];
+				}
+				
+				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
+					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const response = await this.helpers.httpRequest({
+						method: 'GET',
+						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+					});
+					
+					if (!response.success || !response.metadata?.outputPQs) {
+						return [{ name: 'No output PQs found', value: '' }];
+					}
+					
+					const options = response.metadata.outputPQs.map((pq: any) => ({
+						name: pq.symbol, // Just the symbol (v, s, result, etc.)
+						value: JSON.stringify({
+							symbol: pq.symbol,
+							unit: pq.unit,
+							categoryId: pq.categoryId
+						}), // Embed metadata in value for later use
+					}));
+					
+					return options;
+					
+				} catch (error: any) {
+					return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
+				}
+			},
+			
 			// Load available output PQs from validate endpoint - truly dynamic  
 			async getOutputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
@@ -324,13 +398,13 @@ export class CalcsLive implements INodeType {
 				default: '',
 				description: 'Specify output units (optional). Example: {"result": {"unit": "km/h"}}. Leave empty to get all outputs with default units.',
 			},
-			// Enhanced mode - Symbol selector using multiOptions
+			// Enhanced mode - Input symbol selector
 			{
-				displayName: 'Select Physical Quantities',
-				name: 'selectedPQs',
+				displayName: 'Select Input Physical Quantities',
+				name: 'selectedInputPQs',
 				type: 'multiOptions',
 				typeOptions: {
-					loadOptionsMethod: 'getAllPQs',
+					loadOptionsMethod: 'getInputPQsForMultiOptions',
 					loadOptionsDependsOn: ['articleId'],
 				},
 				displayOptions: {
@@ -341,12 +415,30 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: [],
-				description: 'Select which physical quantities to configure. Choose inputs (to provide values) and outputs (to specify units). Note: Changing the Article ID will clear your selections.',
-				hint: 'Select PQs first, then configure values in the tables below if needed',
+				description: 'Select input physical quantities to provide values for. Selected symbols will show value/unit fields below.',
 			},
-			// Enhanced mode - Table-like PQ configuration using fixedCollection
+			// Enhanced mode - Output symbol selector
 			{
-				displayName: 'Input Physical Quantities',
+				displayName: 'Select Output Physical Quantities',
+				name: 'selectedOutputPQs',
+				type: 'multiOptions',
+				typeOptions: {
+					loadOptionsMethod: 'getOutputPQsForMultiOptions',
+					loadOptionsDependsOn: ['articleId'],
+				},
+				displayOptions: {
+					show: {
+						operation: ['execute'],
+						resource: ['calculation'],
+						configMode: ['enhanced'],
+					},
+				},
+				default: [],
+				description: 'Select output physical quantities to specify units for. Selected symbols will show unit fields below.',
+			},
+			// Dynamic input PQ configuration - shows only when input PQs are selected
+			{
+				displayName: 'Configure Input Values & Units',
 				name: 'inputPQs',
 				type: 'fixedCollection',
 				typeOptions: {
@@ -360,7 +452,7 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: {},
-				placeholder: 'Add Input PQ',
+				placeholder: 'Configure selected input PQs',
 				options: [
 					{
 						name: 'pq',
@@ -375,14 +467,14 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId'],
 								},
 								default: '',
-								description: 'Select the physical quantity symbol',
+								description: 'Physical quantity symbol (auto-populated from selection above)',
 							},
 							{
 								displayName: 'Value',
 								name: 'value',
 								type: 'number',
-								default: 100,
-								description: 'Enter the numeric value',
+								default: 1,
+								description: 'Numeric value (defaults to calc face value)',
 							},
 							{
 								displayName: 'Unit',
@@ -393,15 +485,16 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId', 'symbol'],
 								},
 								default: '',
-								description: 'Select the unit for this quantity',
+								description: 'Unit (defaults to calc default unit)',
 							},
 						],
 					},
 				],
-				description: 'Configure input physical quantities with their values and units. Values default to calc defaults but can be overridden.',
+				description: 'Configure values and units for selected input PQs. Fields auto-populate with calc defaults but can be modified.',
 			},
+			// Dynamic output PQ configuration - shows only when output PQs are selected
 			{
-				displayName: 'Output Physical Quantities',
+				displayName: 'Configure Output Units',
 				name: 'outputPQs',
 				type: 'fixedCollection',
 				typeOptions: {
@@ -415,7 +508,7 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: {},
-				placeholder: 'Add Output PQ',
+				placeholder: 'Configure selected output PQs',
 				options: [
 					{
 						name: 'pq',
@@ -430,7 +523,7 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId'],
 								},
 								default: '',
-								description: 'Select the output physical quantity symbol',
+								description: 'Output symbol (auto-populated from selection above)',
 							},
 							{
 								displayName: 'Unit',
@@ -441,12 +534,12 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId', 'symbol'],
 								},
 								default: '',
-								description: 'Select the output unit for this quantity',
+								description: 'Output unit (defaults to calc default unit)',
 							},
 						],
 					},
 				],
-				description: 'Configure output physical quantities and their desired units. Units default to calc defaults but can be overridden.',
+				description: 'Configure units for selected output PQs. Units auto-populate with calc defaults but can be modified.',
 			},
 		],
 	};
@@ -501,94 +594,89 @@ export class CalcsLive implements INodeType {
 								});
 							}
 						} else {
-							// Enhanced mode - use multiOptions selection with auto-populated values
-							const selectedPQs = this.getNodeParameter('selectedPQs', i) as string[];
+							// Enhanced mode - combine multiOptions selection with fixedCollection overrides
+							const selectedInputPQs = this.getNodeParameter('selectedInputPQs', i) as string[];
+							const selectedOutputPQs = this.getNodeParameter('selectedOutputPQs', i) as string[];
 							const inputPQsConfig = this.getNodeParameter('inputPQs', i) as any;
 							const outputPQsConfig = this.getNodeParameter('outputPQs', i) as any;
 							
-							console.log('Selected PQs:', selectedPQs);
+							console.log('Selected Input PQs:', selectedInputPQs);
+							console.log('Selected Output PQs:', selectedOutputPQs);
 							console.log('Input PQs config:', inputPQsConfig);
 							console.log('Output PQs config:', outputPQsConfig);
 							
-							// Parse selected PQs to understand their metadata
-							const selectedInputs: any[] = [];
-							const selectedOutputs: any[] = [];
-							
-							if (selectedPQs && Array.isArray(selectedPQs)) {
-								for (const pqJson of selectedPQs) {
+							// Build inputs object - start with multiOptions defaults, then apply fixedCollection overrides
+							inputs = {};
+							if (selectedInputPQs && Array.isArray(selectedInputPQs)) {
+								for (const pqJson of selectedInputPQs) {
 									try {
 										const pqInfo = JSON.parse(pqJson);
-										if (pqInfo.type === 'input') {
-											selectedInputs.push(pqInfo);
-										} else if (pqInfo.type === 'output') {
-											selectedOutputs.push(pqInfo);
-										}
-									} catch (error) {
-										console.log('Error parsing selected PQ:', pqJson, error);
-									}
-								}
-							}
-							
-							// Build inputs object - combine multiOptions defaults with user overrides
-							inputs = {};
-							for (const inputPQ of selectedInputs) {
-								const symbol = inputPQ.symbol;
-								let value = inputPQ.faceValue || 1;
-								let unit = inputPQ.unit || '';
-								
-								// Check if user provided custom values in fixedCollection
-								if (inputPQsConfig && inputPQsConfig.pq && Array.isArray(inputPQsConfig.pq)) {
-									const userOverride = inputPQsConfig.pq.find((pq: any) => {
-										// Handle both plain symbol and JSON-embedded symbol
-										let pqSymbol = pq.symbol;
-										try {
-											const parsed = JSON.parse(pq.symbol);
-											pqSymbol = parsed.symbol;
-										} catch (e) {
-											// symbol is plain string
-										}
-										return pqSymbol === symbol;
-									});
-									
-									if (userOverride) {
-										value = userOverride.value || value;
-										unit = userOverride.unit || unit;
-									}
-								}
-								
-								(inputs as any)[symbol] = { value, unit };
-								console.log(`Built input for ${symbol}:`, (inputs as any)[symbol]);
-							}
-							
-							// Build outputs object - combine multiOptions defaults with user overrides
-							outputs = undefined;
-							if (selectedOutputs.length > 0) {
-								outputs = {};
-								for (const outputPQ of selectedOutputs) {
-									const symbol = outputPQ.symbol;
-									let unit = outputPQ.unit || '';
-									
-									// Check if user provided custom units in fixedCollection
-									if (outputPQsConfig && outputPQsConfig.pq && Array.isArray(outputPQsConfig.pq)) {
-										const userOverride = outputPQsConfig.pq.find((pq: any) => {
-											// Handle both plain symbol and JSON-embedded symbol
-											let pqSymbol = pq.symbol;
-											try {
-												const parsed = JSON.parse(pq.symbol);
-												pqSymbol = parsed.symbol;
-											} catch (e) {
-												// symbol is plain string
-											}
-											return pqSymbol === symbol;
-										});
+										const symbol = pqInfo.symbol;
+										let value = pqInfo.faceValue || 1;
+										let unit = pqInfo.unit || '';
 										
-										if (userOverride && userOverride.unit) {
-											unit = userOverride.unit;
+										// Check if user provided custom values in fixedCollection
+										if (inputPQsConfig && inputPQsConfig.pq && Array.isArray(inputPQsConfig.pq)) {
+											const userOverride = inputPQsConfig.pq.find((pq: any) => {
+												// Handle both plain symbol and JSON-embedded symbol
+												let pqSymbol = pq.symbol;
+												try {
+													const parsed = JSON.parse(pq.symbol);
+													pqSymbol = parsed.symbol;
+												} catch (e) {
+													// symbol is plain string
+												}
+												return pqSymbol === symbol;
+											});
+											
+											if (userOverride) {
+												if (userOverride.value !== undefined) value = userOverride.value;
+												if (userOverride.unit !== undefined && userOverride.unit !== '') unit = userOverride.unit;
+											}
 										}
+										
+										(inputs as any)[symbol] = { value, unit };
+										console.log(`Built input for ${symbol}:`, (inputs as any)[symbol]);
+									} catch (error) {
+										console.log('Error parsing input PQ:', pqJson, error);
 									}
-									
-									(outputs as any)[symbol] = { unit };
-									console.log(`Built output for ${symbol}:`, (outputs as any)[symbol]);
+								}
+							}
+							
+							// Build outputs object - start with multiOptions defaults, then apply fixedCollection overrides
+							outputs = undefined;
+							if (selectedOutputPQs && Array.isArray(selectedOutputPQs) && selectedOutputPQs.length > 0) {
+								outputs = {};
+								for (const pqJson of selectedOutputPQs) {
+									try {
+										const pqInfo = JSON.parse(pqJson);
+										const symbol = pqInfo.symbol;
+										let unit = pqInfo.unit || '';
+										
+										// Check if user provided custom units in fixedCollection
+										if (outputPQsConfig && outputPQsConfig.pq && Array.isArray(outputPQsConfig.pq)) {
+											const userOverride = outputPQsConfig.pq.find((pq: any) => {
+												// Handle both plain symbol and JSON-embedded symbol
+												let pqSymbol = pq.symbol;
+												try {
+													const parsed = JSON.parse(pq.symbol);
+													pqSymbol = parsed.symbol;
+												} catch (e) {
+													// symbol is plain string
+												}
+												return pqSymbol === symbol;
+											});
+											
+											if (userOverride && userOverride.unit !== undefined && userOverride.unit !== '') {
+												unit = userOverride.unit;
+											}
+										}
+										
+										(outputs as any)[symbol] = { unit };
+										console.log(`Built output for ${symbol}:`, (outputs as any)[symbol]);
+									} catch (error) {
+										console.log('Error parsing output PQ:', pqJson, error);
+									}
 								}
 								
 								// If no output units specified, let API return all
