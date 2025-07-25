@@ -17,6 +17,8 @@ export class CalcsLive implements INodeType {
 			async getInputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
 				
+				console.log('🆔 getInputPQs called for articleId:', articleId);
+				
 				if (!articleId) {
 					return [{ name: 'Enter Article ID first', value: '' }];
 				}
@@ -24,10 +26,14 @@ export class CalcsLive implements INodeType {
 				try {
 					const credentials = await this.getCredentials('calcsLiveApi');
 					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					
+					console.log('🌐 Fetching validate API for articleId:', articleId);
 					const response = await this.helpers.httpRequest({
 						method: 'GET',
 						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
 					});
+					
+					console.log('✅ Validate API response received for:', articleId);
 					
 					if (!response.success || !response.metadata?.inputPQs) {
 						return [{ name: 'No input PQs found', value: '' }];
@@ -90,7 +96,7 @@ export class CalcsLive implements INodeType {
 
 			// Load unit options for a specific symbol - dynamic per PQ
 			async getUnitsForSymbol(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				console.log('🔍 getUnitsForSymbol called');
+				console.log('🔍 getUnitsForSymbol called - user may have selected a symbol');
 				
 				// Debug: Get all current parameters to understand the context
 				const allParams = this.getCurrentNodeParameters();
@@ -339,6 +345,7 @@ export class CalcsLive implements INodeType {
 				type: 'fixedCollection',
 				typeOptions: {
 					multipleValues: true,
+					sortable: false,
 				},
 				displayOptions: {
 					show: {
@@ -347,7 +354,7 @@ export class CalcsLive implements INodeType {
 						configMode: ['enhanced'],
 					},
 				},
-				default: { pq: [] },
+				default: {},
 				placeholder: 'Add Input PQ',
 				options: [
 					{
@@ -370,7 +377,7 @@ export class CalcsLive implements INodeType {
 								name: 'value',
 								type: 'number',
 								default: '',
-								description: 'Enter the numeric value (will auto-populate with calc default when symbol is selected)',
+								description: 'Enter the numeric value (leave empty to use calc default). Will auto-populate during execution if empty.',
 							},
 							{
 								displayName: 'Unit',
@@ -381,12 +388,12 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId', '$.symbol'],
 								},
 								default: '',
-								description: 'Select the unit for this quantity',
+								description: 'Select the unit for this quantity (leave empty to use calc default). Will auto-populate during execution if empty.',
 							},
 						],
 					},
 				],
-				description: 'Configure input physical quantities with their values and units.',
+				description: 'Configure input physical quantities with their values and units. Note: When you change the Article ID above, please remove and re-add PQ rows to ensure they match the new calc.',
 			},
 			// Enhanced mode - Output PQ configuration
 			{
@@ -403,7 +410,7 @@ export class CalcsLive implements INodeType {
 						configMode: ['enhanced'],
 					},
 				},
-				default: { pq: [] },
+				default: {},
 				placeholder: 'Add Output PQ',
 				options: [
 					{
@@ -435,7 +442,7 @@ export class CalcsLive implements INodeType {
 						],
 					},
 				],
-				description: 'Configure output physical quantities and their desired units.',
+				description: 'Configure output physical quantities and their desired units. Note: When you change the Article ID above, please remove and re-add PQ rows to ensure they match the new calc.',
 			},
 		],
 	};
@@ -490,43 +497,140 @@ export class CalcsLive implements INodeType {
 								});
 							}
 						} else {
-							// Enhanced mode - use fixedCollection for table-like PQ configuration
+							// Enhanced mode - hybrid behavior: legacy when no PQs configured, enhanced when PQs specified
 							const inputPQsConfig = this.getNodeParameter('inputPQs', i) as any;
 							const outputPQsConfig = this.getNodeParameter('outputPQs', i) as any;
 							
-							console.log('Input PQs config:', inputPQsConfig);
-							console.log('Output PQs config:', outputPQsConfig);
+							console.log('📊 Enhanced mode - Input PQs config:', inputPQsConfig);
+							console.log('📊 Enhanced mode - Output PQs config:', outputPQsConfig);
 							
-							// Build inputs object from fixedCollection
-							inputs = {};
-							if (inputPQsConfig && inputPQsConfig.pq && Array.isArray(inputPQsConfig.pq)) {
+							// Check if user has configured any specific PQs
+							const hasInputPQs = inputPQsConfig && inputPQsConfig.pq && Array.isArray(inputPQsConfig.pq) && inputPQsConfig.pq.length > 0;
+							const hasOutputPQs = outputPQsConfig && outputPQsConfig.pq && Array.isArray(outputPQsConfig.pq) && outputPQsConfig.pq.length > 0;
+							
+							console.log('🔍 Has configured PQs:', { hasInputPQs, hasOutputPQs });
+							
+							if (!hasInputPQs && !hasOutputPQs) {
+								// No PQs configured - behave like legacy mode (use all calc defaults)
+								console.log('🎯 No PQs configured - using legacy mode behavior (all calc defaults)');
+								
+								// Get calc defaults from validate API
+								const credentials = await this.getCredentials('calcsLiveApi');
+								const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+								
+								console.log('🌐 Fetching calc defaults from validate API for articleId:', articleId);
+								const validateResponse = await this.helpers.httpRequest({
+									method: 'GET',
+									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+								});
+								
+								if (validateResponse.success && validateResponse.metadata) {
+									// Build inputs from all input PQs with their default values
+									inputs = {};
+									if (validateResponse.metadata.inputPQs) {
+										for (const pq of validateResponse.metadata.inputPQs) {
+											inputs[pq.symbol] = {
+												value: pq.faceValue || 1,
+												unit: pq.unit || ''
+											};
+											console.log(`🔧 Using calc default for ${pq.symbol}:`, inputs[pq.symbol]);
+										}
+									}
+									
+									// Leave outputs undefined to get all outputs with default units
+									outputs = undefined;
+									console.log('📤 Using all calc default outputs');
+								} else {
+									throw new NodeOperationError(this.getNode(), 'Failed to fetch calc defaults from validate API', {
+										itemIndex: i,
+									});
+								}
+							} else {
+								// User has configured specific PQs - use enhanced mode behavior
+								console.log('🎯 PQs configured - using enhanced mode behavior');
+								
+								// First, get current calc metadata to validate PQ selections
+								const credentials = await this.getCredentials('calcsLiveApi');
+								const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+								
+								console.log('🌐 Fetching current calc metadata to validate PQ selections');
+								const validateResponse = await this.helpers.httpRequest({
+									method: 'GET',
+									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+								});
+								
+								if (!validateResponse.success || !validateResponse.metadata) {
+									throw new NodeOperationError(this.getNode(), 'Failed to fetch current calc metadata for validation', {
+										itemIndex: i,
+									});
+								}
+								
+								// Build inputs object from fixedCollection with validation
+								inputs = {};
+								if (inputPQsConfig && inputPQsConfig.pq && Array.isArray(inputPQsConfig.pq)) {
 								for (const pqConfig of inputPQsConfig.pq) {
-									if (pqConfig.symbol) {
+									if (pqConfig.symbol && pqConfig.symbol.trim() !== '') {
 										// Parse the embedded JSON metadata if symbol contains it
 										let symbol = pqConfig.symbol;
 										let value = pqConfig.value;
 										let unit = pqConfig.unit || '';
+										let isValidSymbol = false;
 										
 										try {
 											// Check if symbol is embedded JSON (from loadOptions)  
 											const pqInfo = JSON.parse(pqConfig.symbol);
 											symbol = pqInfo.symbol;
 											
-											// Use faceValue as default if user hasn't entered a custom value
-											if (value === '' || value === null || value === undefined) {
-												value = pqInfo.faceValue || 1;
-												console.log(`🔧 Auto-populated value for ${symbol}: ${value}`);
-											}
+											// Validate that this symbol exists in current calc
+											const allCurrentPQs = [...(validateResponse.metadata.inputPQs || []), ...(validateResponse.metadata.outputPQs || [])];
+											const currentPQData = allCurrentPQs.find((pq: any) => pq.symbol === symbol);
 											
-											// Use original unit as default if user hasn't selected a custom unit
-											if (unit === '' || unit === null || unit === undefined) {
-												unit = pqInfo.unit || '';
-												console.log(`🔧 Auto-populated unit for ${symbol}: ${unit}`);
+											if (currentPQData) {
+												isValidSymbol = true;
+												
+												// Use current calc's faceValue as default if user hasn't entered a custom value
+												if (value === '' || value === null || value === undefined) {
+													value = currentPQData.faceValue || 1;
+													console.log(`🔧 Auto-populated value for ${symbol}: ${value} (from current calc)`);
+												}
+												
+												// Use current calc's unit as default if user hasn't selected a custom unit
+												if (unit === '' || unit === null || unit === undefined) {
+													unit = currentPQData.unit || '';
+													console.log(`🔧 Auto-populated unit for ${symbol}: ${unit} (from current calc)`);
+												}
+											} else {
+												console.log(`⚠️ Warning: Symbol ${symbol} not found in current calc - may be from old articleId`);
+												// Use the embedded data as fallback but issue warning
+												if (value === '' || value === null || value === undefined) {
+													value = pqInfo.faceValue || 1;
+													console.log(`⚠️ Using stale faceValue for ${symbol}: ${value}`);
+												}
+												if (unit === '' || unit === null || unit === undefined) {
+													unit = pqInfo.unit || '';
+													console.log(`⚠️ Using stale unit for ${symbol}: ${unit}`);
+												}
 											}
 										} catch (error) {
-											// symbol is just a plain string, use as-is
-											if (value === '' || value === null || value === undefined) {
-												value = 1;
+											// symbol is just a plain string, validate it exists in current calc
+											const allCurrentPQs = [...(validateResponse.metadata.inputPQs || []), ...(validateResponse.metadata.outputPQs || [])];
+											const currentPQData = allCurrentPQs.find((pq: any) => pq.symbol === symbol);
+											
+											if (currentPQData) {
+												isValidSymbol = true;
+												if (value === '' || value === null || value === undefined) {
+													value = currentPQData.faceValue || 1;
+													console.log(`🔧 Auto-populated value for ${symbol}: ${value} (plain string)`);
+												}
+												if (unit === '' || unit === null || unit === undefined) {
+													unit = currentPQData.unit || '';
+													console.log(`🔧 Auto-populated unit for ${symbol}: ${unit} (plain string)`);
+												}
+											} else {
+												console.log(`❌ Error: Symbol ${symbol} not found in current calc`);
+												if (value === '' || value === null || value === undefined) {
+													value = 1;
+												}
 											}
 										}
 										
@@ -571,8 +675,9 @@ export class CalcsLive implements INodeType {
 								}
 							}
 							
-							console.log('Final built inputs object:', inputs);
-							console.log('Final built outputs object:', outputs);
+								console.log('Final built inputs object:', inputs);
+								console.log('Final built outputs object:', outputs);
+							}
 						}
 
 						const credentials = await this.getCredentials('calcsLiveApi');
