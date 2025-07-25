@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains the `n8n-nodes-calcslive` custom n8n node that wraps the CalcsLive calculation API to provide better user experience than raw HTTP Request nodes in n8n workflows.
 
-**Status**: ✅ **COMPLETED AND FUNCTIONAL**
-- Node successfully integrates with CalcsLive API
-- Tested and working in local n8n environment
-- Proper JSON parsing for inputs/outputs
-- Custom PNG icon implemented
-- Full error handling and validation
+**Status**: 🟡 **IN DEVELOPMENT - Enhanced Mode Implementation**
+- Legacy mode: ✅ Fully functional with manual JSON input/output
+- Enhanced mode: 🟡 FixedCollection UI implemented, needs completion
+- Dynamic PQ loading: ✅ Responds to articleId changes
+- API integration: ✅ Full error handling and validation
+- Custom PNG icon: ✅ Implemented
 
 ## Development Commands
 
@@ -97,31 +97,34 @@ n8n-nodes-calcslive/
 
 ## Node Implementation Requirements
 
-### Node Interface
-✅ **IMPLEMENTED AND TESTED**
-- **Article ID input** (string, required): Calculation article identifier (e.g., "3LYPD4C96-34U")
-- **Inputs field** (JSON, required): Physical quantities with values and units - **FIXED**: Now properly parses JSON strings
-- **Outputs field** (JSON, optional): Desired output units - **FIXED**: Now properly parses JSON strings
+### Configuration Modes
+
+#### Legacy Mode ✅ **FULLY FUNCTIONAL**
+- **Manual JSON input/output**: Direct JSON configuration for all PQs
+- **Works with any calc**: No hardcoded assumptions about PQ structure
+- **Full API compatibility**: Supports all inputs/outputs patterns
+- **Example**: `{"D": {"value": 360, "unit": "km"}, "t": {"value": 10, "unit": "h"}}`
+
+#### Enhanced Mode 🟡 **IN PROGRESS**
+- **Dynamic PQ loading**: Symbol lists update when articleId changes (✅ implemented)
+- **FixedCollection UI**: Table-like interface with Symbol/Value/Unit columns (✅ implemented)
+- **Auto-population**: Need to implement default value/unit population (🔄 pending)
+- **Field clearing**: Need to clear old data on articleId change (🔄 pending)
+- **Dynamic units**: Unit dropdowns based on selected PQ category (✅ implemented)
+
+### Node Interface ✅ **CORE FEATURES COMPLETE**
+- **Article ID input** (string, required): Calculation article identifier
+- **Configuration Mode** (options): Legacy (JSON) vs Enhanced (FixedCollection)
 - **Credential management**: Secure API key storage with base URL configuration
 - **Custom icon**: PNG image support implemented
 
-### Error Handling Requirements
-✅ **FULLY IMPLEMENTED**
+### Error Handling ✅ **FULLY IMPLEMENTED**
 - **401**: Invalid API key - Clear error message
 - **404**: Article not found - Descriptive error message  
 - **400**: Invalid units or malformed request - JSON validation with helpful messages
 - **429**: Rate limit exceeded - Rate limit warning
 - **5xx**: Server errors - Generic server error handling
-- **JSON parsing errors**: Specific validation for inputs/outputs JSON format
-
-### Implementation Status
-✅ **COMPLETED MVP SCOPE**
-- Simple text input for article ID ✅
-- JSON input for units with proper parsing ✅
-- Basic validation of required fields ✅
-- Clear error messages for common issues ✅
-- Structured output data for downstream nodes ✅
-- Custom PNG icon support ✅
+- **Dynamic loading errors**: Graceful fallbacks for loadOptions failures
 
 ## Testing Strategy
 
