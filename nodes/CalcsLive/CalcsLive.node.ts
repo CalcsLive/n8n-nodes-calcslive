@@ -10,6 +10,117 @@ import {
 } from 'n8n-workflow';
 
 export class CalcsLive implements INodeType {
+	methods = {
+		loadOptions: {
+			// Load available input PQs from validate endpoint - truly dynamic
+			async getInputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const articleId = this.getCurrentNodeParameter('articleId') as string;
+				
+				if (!articleId) {
+					return [{ name: 'Enter Article ID first', value: '' }];
+				}
+				
+				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
+					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const response = await this.helpers.httpRequest({
+						method: 'GET',
+						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+					});
+					
+					if (!response.success || !response.metadata?.inputPQs) {
+						return [{ name: 'No input PQs found', value: '' }];
+					}
+					
+					// Use real PQ data with faceValue and unit - this will trigger UI refresh
+					const options = response.metadata.inputPQs.map((pq: any) => ({
+						name: `${pq.symbol} (${pq.faceValue || 'default'} ${pq.unit})`,
+						value: JSON.stringify({
+							symbol: pq.symbol,
+							faceValue: pq.faceValue,
+							unit: pq.unit,
+							categoryId: pq.categoryId
+						}), // Embed metadata in value for later use
+					}));
+					
+					return options;
+					
+				} catch (error: any) {
+					return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
+				}
+			},
+
+			// Load available output PQs from validate endpoint - truly dynamic  
+			async getOutputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const articleId = this.getCurrentNodeParameter('articleId') as string;
+				
+				if (!articleId) {
+					return [{ name: 'Enter Article ID first', value: '' }];
+				}
+				
+				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
+					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const response = await this.helpers.httpRequest({
+						method: 'GET',
+						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+					});
+					
+					if (!response.success || !response.metadata?.outputPQs) {
+						return [{ name: 'No output PQs found', value: '' }];
+					}
+					
+					const options = response.metadata.outputPQs.map((pq: any) => ({
+						name: `${pq.symbol} (default: ${pq.unit})`,
+						value: JSON.stringify({
+							symbol: pq.symbol,
+							unit: pq.unit,
+							categoryId: pq.categoryId
+						}), // Embed metadata in value for later use
+					}));
+					
+					return options;
+					
+				} catch (error: any) {
+					return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
+				}
+			},
+
+			// Load unit options for a specific category - dynamic per PQ
+			async getUnitsForCategory(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const categoryId = this.getCurrentNodeParameter('categoryId') as string;
+				const articleId = this.getCurrentNodeParameter('articleId') as string;
+				
+				if (!articleId || !categoryId) {
+					return [{ name: 'Loading...', value: '' }];
+				}
+				
+				try {
+					const credentials = await this.getCredentials('calcsLiveApi');
+					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+					const response = await this.helpers.httpRequest({
+						method: 'GET',
+						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+					});
+					
+					if (!response.success || !response.metadata?.availableUnits?.[categoryId]) {
+						return [{ name: 'No units found', value: '' }];
+					}
+					
+					const units = response.metadata.availableUnits[categoryId];
+					const options = units.map((unit: string) => ({
+						name: unit,
+						value: unit,
+					}));
+					
+					return options;
+					
+				} catch (error: any) {
+					return [{ name: `Error: ${error.message}`, value: '' }];
+				}
+			},
+		},
+	};
 
 	description: INodeTypeDescription = {
 		displayName: 'CalcsLive Calculator',
@@ -118,8 +229,8 @@ export class CalcsLive implements INodeType {
 						configMode: ['legacy'],
 					},
 				},
-				default: '{\n  "D": { "value": 360, "unit": "km" },\n  "t": { "value": 10, "unit": "h" }\n}',
-				description: 'Physical quantities with values and units for the calculation.',
+				default: '{\n  "symbol1": { "value": 100, "unit": "unit1" },\n  "symbol2": { "value": 10, "unit": "unit2" }\n}',
+				description: 'Physical quantities with values and units. Replace symbols and values with those from your specific calc.',
 			},
 			{
 				displayName: 'Outputs (Optional)',
@@ -134,31 +245,16 @@ export class CalcsLive implements INodeType {
 					},
 				},
 				default: '',
-				description: 'Specify output units (optional). Leave empty to get all outputs with default units.',
+				description: 'Specify output units (optional). Example: {"result": {"unit": "km/h"}}. Leave empty to get all outputs with default units.',
 			},
-			// Enhanced mode - INPUT PQs configuration
+			// Enhanced mode - Dynamic PQ selection
 			{
-				displayName: 'Input PQs Configuration',
-				name: 'inputPQsHeader',
-				type: 'notice',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-					},
-				},
-				default: '',
+				displayName: 'Select Input PQs',
+				name: 'selectedInputPQs',
+				type: 'multiOptions',
 				typeOptions: {
-					theme: 'info',
+					loadOptionsMethod: 'getInputPQs',
 				},
-				description: 'Configure input physical quantities below. Enable/disable and set values as needed.',
-			},
-			// D (Distance) configuration
-			{
-				displayName: 'Include D (Distance)',
-				name: 'D_enabled',
-				type: 'boolean',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
@@ -166,124 +262,16 @@ export class CalcsLive implements INodeType {
 						configMode: ['enhanced'],
 					},
 				},
-				default: true,
-				description: 'Include distance (D) in the calculation',
+				default: [],
+				description: 'Select input physical quantities to configure. Values and units shown from the calc.',
 			},
 			{
-				displayName: 'D Value',
-				name: 'D_value',
-				type: 'number',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						D_enabled: [true],
-					},
-				},
-				default: 12,
-				description: 'Distance value',
-			},
-			{
-				displayName: 'D Unit',
-				name: 'D_unit',
-				type: 'options',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						D_enabled: [true],
-					},
-				},
-				options: [
-					{ name: 'km', value: 'km' },
-					{ name: 'm', value: 'm' },
-					{ name: 'cm', value: 'cm' },
-					{ name: 'mm', value: 'mm' },
-					{ name: 'in', value: 'in' },
-					{ name: 'ft', value: 'ft' },
-					{ name: 'yd', value: 'yd' },
-					{ name: 'mile', value: 'mile' },
-				],
-				default: 'km',
-				description: 'Distance unit',
-			},
-			// t (Time) configuration
-			{
-				displayName: 'Include t (Time)',
-				name: 't_enabled',
-				type: 'boolean',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-					},
-				},
-				default: true,
-				description: 'Include time (t) in the calculation',
-			},
-			{
-				displayName: 't Value',
-				name: 't_value',
-				type: 'number',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						t_enabled: [true],
-					},
-				},
-				default: 12,
-				description: 'Time value',
-			},
-			{
-				displayName: 't Unit',
-				name: 't_unit',
-				type: 'options',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						t_enabled: [true],
-					},
-				},
-				options: [
-					{ name: 's', value: 's' },
-					{ name: 'minute', value: 'minute' },
-					{ name: 'h', value: 'h' },
-					{ name: 'day', value: 'day' },
-					{ name: 'week', value: 'week' },
-				],
-				default: 'h',
-				description: 'Time unit',
-			},
-			// Enhanced mode - OUTPUT PQs configuration
-			{
-				displayName: 'Output PQs Configuration',
-				name: 'outputPQsHeader',
-				type: 'notice',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-					},
-				},
-				default: '',
+				displayName: 'Select Output PQs',
+				name: 'selectedOutputPQs',
+				type: 'multiOptions',
 				typeOptions: {
-					theme: 'success',
+					loadOptionsMethod: 'getOutputPQs',
 				},
-				description: 'Configure output physical quantities. Leave all disabled to get all outputs.',
-			},
-			// v (Velocity) configuration
-			{
-				displayName: 'Include v (Velocity)',
-				name: 'v_enabled',
-				type: 'boolean',
 				displayOptions: {
 					show: {
 						operation: ['execute'],
@@ -291,30 +279,8 @@ export class CalcsLive implements INodeType {
 						configMode: ['enhanced'],
 					},
 				},
-				default: true,
-				description: 'Include velocity (v) in the output',
-			},
-			{
-				displayName: 'v Unit',
-				name: 'v_unit',
-				type: 'options',
-				displayOptions: {
-					show: {
-						operation: ['execute'],
-						resource: ['calculation'],
-						configMode: ['enhanced'],
-						v_enabled: [true],
-					},
-				},
-				options: [
-					{ name: 'm/s', value: 'm/s' },
-					{ name: 'km/h', value: 'km/h' },
-					{ name: 'mph', value: 'mph[mile/h]' },
-					{ name: 'ft/s', value: 'fps' },
-					{ name: 'knot', value: 'knot[kn or kt or nautical mile/h]' },
-				],
-				default: 'm/s',
-				description: 'Velocity output unit',
+				default: [],
+				description: 'Select output physical quantities. Leave empty to get all outputs with default units.',
 			},
 		],
 	};
@@ -369,49 +335,71 @@ export class CalcsLive implements INodeType {
 								});
 							}
 						} else {
-							// Enhanced mode - build inputs/outputs from individual PQ configuration fields
+							// Enhanced mode - build inputs/outputs from dynamic multiOptions selections
+							const selectedInputPQs = this.getNodeParameter('selectedInputPQs', i) as string[];
+							const selectedOutputPQs = this.getNodeParameter('selectedOutputPQs', i) as string[];
+							
+							// Get PQ metadata to use real faceValues and units
+							const creds = await this.getCredentials('calcsLiveApi');
+							const baseUrl = creds.baseUrl || 'https://www.calcs.live';
+							let metadata: any = null;
+							
+							try {
+								const response = await this.helpers.httpRequest({
+									method: 'GET',
+									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${creds.apiKey}`,
+								});
+								
+								if (response.success) {
+									metadata = response.metadata;
+								}
+							} catch (error) {
+								console.error('Failed to get metadata for enhanced mode:', error);
+							}
+							
+							// Build inputs object from selected PQs using embedded metadata
 							inputs = {};
-							outputs = {};
-							
-							// Check each possible input PQ
-							const inputPQs = ['D', 't']; // Known PQs for this calc
-							
-							for (const pqSymbol of inputPQs) {
-								const enabled = this.getNodeParameter(`${pqSymbol}_enabled`, i) as boolean;
-								
-								if (enabled) {
-									const value = this.getNodeParameter(`${pqSymbol}_value`, i) as number;
-									const unit = this.getNodeParameter(`${pqSymbol}_unit`, i) as string;
-									
-									(inputs as any)[pqSymbol] = {
-										value: value,
-										unit: unit,
-									};
-									
-									console.log(`Built input for ${pqSymbol}:`, (inputs as any)[pqSymbol]);
+							if (selectedInputPQs && selectedInputPQs.length > 0) {
+								for (const pqData of selectedInputPQs) {
+									try {
+										// Parse the embedded JSON metadata from the multiOptions value
+										const pqInfo = JSON.parse(pqData);
+										const symbol = pqInfo.symbol;
+										
+										(inputs as any)[symbol] = {
+											value: pqInfo.faceValue || 1,
+											unit: pqInfo.unit || '',
+										};
+										console.log(`Built input for ${symbol}:`, (inputs as any)[symbol]);
+									} catch (error) {
+										console.error('Failed to parse PQ data:', pqData, error);
+									}
 								}
 							}
 							
-							// Check each possible output PQ
-							const outputPQs = ['v']; // Known PQs for this calc
-							
-							for (const pqSymbol of outputPQs) {
-								const enabled = this.getNodeParameter(`${pqSymbol}_enabled`, i) as boolean;
-								
-								if (enabled) {
-									const unit = this.getNodeParameter(`${pqSymbol}_unit`, i) as string;
-									
-									(outputs as any)[pqSymbol] = {
-										unit: unit,
-									};
-									
-									console.log(`Built output for ${pqSymbol}:`, (outputs as any)[pqSymbol]);
+							// Build outputs object from selected PQs using embedded metadata
+							outputs = undefined;
+							if (selectedOutputPQs && selectedOutputPQs.length > 0) {
+								outputs = {};
+								for (const pqData of selectedOutputPQs) {
+									try {
+										// Parse the embedded JSON metadata from the multiOptions value
+										const pqInfo = JSON.parse(pqData);
+										const symbol = pqInfo.symbol;
+										
+										(outputs as any)[symbol] = {
+											unit: pqInfo.unit || '',
+										};
+										console.log(`Built output for ${symbol}:`, (outputs as any)[symbol]);
+									} catch (error) {
+										console.error('Failed to parse output PQ data:', pqData, error);
+									}
 								}
-							}
-							
-							// If no outputs specified, let API return all outputs
-							if (Object.keys(outputs).length === 0) {
-								outputs = undefined;
+								
+								// If no output units specified, let API return all
+								if (Object.keys(outputs).length === 0) {
+									outputs = undefined;
+								}
 							}
 							
 							console.log('Final built inputs object:', inputs);
