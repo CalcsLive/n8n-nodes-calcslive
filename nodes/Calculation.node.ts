@@ -125,8 +125,13 @@ export class Calculation implements INodeType {
                 default: '',
                 description:
                   'Unit for the value. The options are aggregated from all available unit categories.',
+                // Load units dynamically based on the selected PQ symbol. When the symbol
+                // changes the list of units will refresh. If for some reason the
+                // article does not return unit information for the selected PQ the
+                // dropdown will fall back to a flattened list of all units.
                 typeOptions: {
-                  loadOptionsMethod: 'getUnits',
+                  loadOptionsMethod: 'getUnitsForInput',
+                  loadOptionsDependsOn: ['symbol'],
                 },
               },
             ],
@@ -173,7 +178,8 @@ export class Calculation implements INodeType {
                 description:
                   'Preferred unit for the output value. Leave empty to use the article\'s default unit.',
                 typeOptions: {
-                  loadOptionsMethod: 'getUnits',
+                  loadOptionsMethod: 'getUnitsForOutput',
+                  loadOptionsDependsOn: ['symbol'],
                 },
               },
             ],
@@ -330,6 +336,134 @@ export class Calculation implements INodeType {
         // Fall back to a common set if none returned
         if (Object.keys(unitsMap).length === 0) {
           // Provide some basic SI units as a fallback
+          ['m', 's', 'kg', 'A', 'K', 'mol', 'cd'].forEach((u) => {
+            unitsMap[u] = true;
+          });
+        }
+        return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
+      },
+
+      /**
+       * Returns the units available for a specific input PQ. This function
+       * looks up the selected symbol in the article metadata and returns
+       * the corresponding units from the availableUnits map. If no match is
+       * found it falls back to a flattened list of all units.
+       */
+      async getUnitsForInput(this: any): Promise<INodePropertyOptions[]> {
+        const articleId = this.getCurrentNodeParameter('articleId') as string;
+        const symbol = this.getCurrentNodeParameter('symbol') as string;
+        if (!articleId || !symbol) {
+          return [];
+        }
+        const credentials = (await this.getCredentials('calculationApi')) as {
+          baseUrl: string;
+          apiKey: string;
+        };
+        const baseUrl = (credentials.baseUrl || '').replace(/\/?$/, '');
+        const apiKey = credentials.apiKey;
+        const qs = { articleId, apiKey };
+        const options = {
+          method: 'GET' as const,
+          url: `${baseUrl}/api/n8n/validate`,
+          qs,
+          json: true,
+        };
+        let response;
+        try {
+          response = await this.helpers.httpRequest!(options);
+        } catch (error) {
+          return [];
+        }
+        const inputPQs = response?.metadata?.inputPQs;
+        const availableUnits = response?.metadata?.availableUnits;
+        // Try to find the categoryId for the selected symbol
+        let categoryId: string | undefined;
+        if (Array.isArray(inputPQs)) {
+          for (const pq of inputPQs) {
+            if (pq.symbol === symbol) {
+              categoryId = pq.categoryId;
+              break;
+            }
+          }
+        }
+        if (categoryId && availableUnits && availableUnits[categoryId]) {
+          const units: string[] = availableUnits[categoryId] as string[];
+          return units.map((u) => ({ name: u, value: u }));
+        }
+        // Fallback to flattened list of all available units in the article
+        const unitsMap: Record<string, true> = {};
+        if (availableUnits && typeof availableUnits === 'object') {
+          for (const category of Object.values(availableUnits) as unknown as string[][]) {
+            if (Array.isArray(category)) {
+              for (const unit of category) {
+                unitsMap[unit] = true;
+              }
+            }
+          }
+        }
+        if (Object.keys(unitsMap).length === 0) {
+          ['m', 's', 'kg', 'A', 'K', 'mol', 'cd'].forEach((u) => {
+            unitsMap[u] = true;
+          });
+        }
+        return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
+      },
+
+      /**
+       * Returns the units available for a specific output PQ.
+       */
+      async getUnitsForOutput(this: any): Promise<INodePropertyOptions[]> {
+        const articleId = this.getCurrentNodeParameter('articleId') as string;
+        const symbol = this.getCurrentNodeParameter('symbol') as string;
+        if (!articleId || !symbol) {
+          return [];
+        }
+        const credentials = (await this.getCredentials('calculationApi')) as {
+          baseUrl: string;
+          apiKey: string;
+        };
+        const baseUrl = (credentials.baseUrl || '').replace(/\/?$/, '');
+        const apiKey = credentials.apiKey;
+        const qs = { articleId, apiKey };
+        const options = {
+          method: 'GET' as const,
+          url: `${baseUrl}/api/n8n/validate`,
+          qs,
+          json: true,
+        };
+        let response;
+        try {
+          response = await this.helpers.httpRequest!(options);
+        } catch (error) {
+          return [];
+        }
+        const outputPQs = response?.metadata?.outputPQs;
+        const availableUnits = response?.metadata?.availableUnits;
+        let categoryId: string | undefined;
+        if (Array.isArray(outputPQs)) {
+          for (const pq of outputPQs) {
+            if (pq.symbol === symbol) {
+              categoryId = pq.categoryId;
+              break;
+            }
+          }
+        }
+        if (categoryId && availableUnits && availableUnits[categoryId]) {
+          const units: string[] = availableUnits[categoryId] as string[];
+          return units.map((u) => ({ name: u, value: u }));
+        }
+        // Fallback to flattened list of all available units in the article
+        const unitsMap: Record<string, true> = {};
+        if (availableUnits && typeof availableUnits === 'object') {
+          for (const category of Object.values(availableUnits) as unknown as string[][]) {
+            if (Array.isArray(category)) {
+              for (const unit of category) {
+                unitsMap[unit] = true;
+              }
+            }
+          }
+        }
+        if (Object.keys(unitsMap).length === 0) {
           ['m', 's', 'kg', 'A', 'K', 'mol', 'cd'].forEach((u) => {
             unitsMap[u] = true;
           });
