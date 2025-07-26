@@ -124,14 +124,12 @@ export class Calculation implements INodeType {
                 options: [],
                 default: '',
                 description:
-                  'Unit for the value. The options are aggregated from all available unit categories.',
-                // Load units dynamically based on the selected PQ symbol. When the symbol
-                // changes the list of units will refresh. If for some reason the
-                // article does not return unit information for the selected PQ the
-                // dropdown will fall back to a flattened list of all units.
+                  'Unit for the value. The dropdown contains all known units for this article.',
+                // Use a common unit list for all PQs. This avoids empty dropdowns when
+                // dynamic loading is not supported in the editor. At runtime the
+                // default unit will be applied if none is provided.
                 typeOptions: {
-                  loadOptionsMethod: 'getUnitsForInput',
-                  loadOptionsDependsOn: ['symbol'],
+                  loadOptionsMethod: 'getUnits',
                 },
               },
             ],
@@ -176,10 +174,9 @@ export class Calculation implements INodeType {
                 options: [],
                 default: '',
                 description:
-                  'Preferred unit for the output value. Leave empty to use the article\'s default unit.',
+                  'Preferred unit for the output value. Leave empty to use the article\'s default unit. The dropdown contains all known units for this article.',
                 typeOptions: {
-                  loadOptionsMethod: 'getUnitsForOutput',
-                  loadOptionsDependsOn: ['symbol'],
+                  loadOptionsMethod: 'getUnits',
                 },
               },
             ],
@@ -519,31 +516,78 @@ export class Calculation implements INodeType {
           returnData.push({ json: responseData?.metadata || {} });
         }
       } else if (operation === 'calculate') {
-        // Build inputs object
+        // Load article metadata once to determine default values and units
+        let metadata: any;
+        try {
+          const validateOptions = {
+            method: 'GET' as const,
+            url: `${baseUrl}/api/n8n/validate`,
+            qs: { articleId, apiKey },
+            json: true,
+          };
+          const validateResponse = await this.helpers.httpRequest!(validateOptions);
+          metadata = validateResponse?.metadata;
+        } catch (error) {
+          const err: any = error;
+          throw new Error(
+            `Unable to load article metadata for calculation: ${err?.message || err?.toString?.() || err}`,
+          );
+        }
+        const inputPqMap: Record<string, any> = {};
+        const outputPqMap: Record<string, any> = {};
+        if (metadata) {
+          if (Array.isArray(metadata.inputPQs)) {
+            for (const pq of metadata.inputPQs) {
+              inputPqMap[pq.symbol] = pq;
+            }
+          }
+          if (Array.isArray(metadata.outputPQs)) {
+            for (const pq of metadata.outputPQs) {
+              outputPqMap[pq.symbol] = pq;
+            }
+          }
+        }
+        // Build inputs object with defaults where appropriate
         const inputsCollection = this.getNodeParameter('inputs', i, {}) as IDataObject;
         const inputs: Record<string, { value: number; unit: string }> = {};
         if (inputsCollection && inputsCollection.input) {
           const inputArray = inputsCollection.input as IDataObject[];
           for (const entry of inputArray) {
             const symbol = entry.symbol as string;
-            const value = entry.value as number;
-            const unit = entry.unit as string;
+            let value = entry.value as number | undefined;
+            let unit = entry.unit as string | undefined;
+            const defaultPq = inputPqMap[symbol];
+            if (defaultPq) {
+              // Use the article\'s faceValue and unit when user has not provided their own
+              if ((value === undefined || value === null || value === ('' as any))) {
+                if (typeof defaultPq.faceValue === 'number') {
+                  value = defaultPq.faceValue;
+                }
+              }
+              if (!unit && defaultPq.unit) {
+                unit = defaultPq.unit;
+              }
+            }
             if (symbol) {
               inputs[symbol] = {
-                value,
-                unit: unit || '',
+                value: value as number,
+                unit: (unit || '') as string,
               };
             }
           }
         }
-        // Build outputs object
+        // Build outputs object with defaults where appropriate
         const outputsCollection = this.getNodeParameter('outputs', i, {}) as IDataObject;
         const outputs: Record<string, { unit?: string }> = {};
         if (outputsCollection && outputsCollection.output) {
           const outputArray = outputsCollection.output as IDataObject[];
           for (const entry of outputArray) {
             const symbol = entry.symbol as string;
-            const unit = entry.unit as string;
+            let unit = entry.unit as string | undefined;
+            const defaultPq = outputPqMap[symbol];
+            if (!unit && defaultPq && defaultPq.unit) {
+              unit = defaultPq.unit;
+            }
             if (symbol) {
               outputs[symbol] = {};
               if (unit) {
@@ -557,11 +601,10 @@ export class Calculation implements INodeType {
           apiKey,
           inputs,
         };
-        // Only include outputs when at least one is specified
         if (Object.keys(outputs).length > 0) {
           body.outputs = outputs;
         }
-        const options = {
+        const calcOptions = {
           method: 'POST' as const,
           url: `${baseUrl}/api/n8n/calculate`,
           body,
@@ -569,7 +612,7 @@ export class Calculation implements INodeType {
         };
         let responseData: any;
         try {
-          responseData = await this.helpers.httpRequest!(options);
+          responseData = await this.helpers.httpRequest!(calcOptions);
         } catch (error) {
           const err: any = error;
           throw new Error(
