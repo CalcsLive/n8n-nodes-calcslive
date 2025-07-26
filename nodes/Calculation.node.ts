@@ -1,8 +1,4 @@
 import type {
-  IExecuteFunctions,
-  ILoadOptionsFunctions,
-} from 'n8n-core';
-import type {
   IDataObject,
   INodeExecutionData,
   INodePropertyOptions,
@@ -37,8 +33,10 @@ export class Calculation implements INodeType {
     defaults: {
       name: 'Calculation',
     },
-    inputs: ['main'],
-    outputs: ['main'],
+    // Use an assertion to satisfy the type system. n8n expects arrays of
+    // NodeConnectionType strings but we avoid importing additional types here.
+    inputs: ['main'] as any,
+    outputs: ['main'] as any,
     credentials: [
       {
         name: 'calculationApi',
@@ -200,7 +198,7 @@ export class Calculation implements INodeType {
    */
   methods = {
     loadOptions: {
-      async getInputPqs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+      async getInputPqs(this: any): Promise<INodePropertyOptions[]> {
         const articleId = this.getCurrentNodeParameter('articleId') as string;
         if (!articleId) {
           return [];
@@ -248,7 +246,7 @@ export class Calculation implements INodeType {
       /**
        * Dynamically loads output PQs for the given article.
        */
-      async getOutputPqs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+      async getOutputPqs(this: any): Promise<INodePropertyOptions[]> {
         const articleId = this.getCurrentNodeParameter('articleId') as string;
         if (!articleId) {
           return [];
@@ -294,7 +292,7 @@ export class Calculation implements INodeType {
        * Each unit will appear as both name and value. If multiple categories
        * contain the same unit it will only be shown once.
        */
-      async getUnits(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+      async getUnits(this: any): Promise<INodePropertyOptions[]> {
         const articleId = this.getCurrentNodeParameter('articleId') as string;
         if (!articleId) {
           return [];
@@ -347,7 +345,7 @@ export class Calculation implements INodeType {
    * Depending on the selected operation (validate or calculate) different
    * HTTP requests are made and the results are returned as output data.
    */
-  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+  async execute(this: any): Promise<INodeExecutionData[][]> {
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
     const operation = this.getNodeParameter('operation', 0) as string;
@@ -375,8 +373,9 @@ export class Calculation implements INodeType {
           responseData = await this.helpers.httpRequest!(options);
         } catch (error) {
           // Pass the error message upstream so an Error Trigger node can catch it
+          const err: any = error;
           throw new Error(
-            `Calculation validate request failed: ${error.message || error.toString()}`,
+            `Calculation validate request failed: ${err?.message || err?.toString?.() || err}`,
           );
         }
         const rawResponse = this.getNodeParameter('rawResponse', i) as boolean;
@@ -438,8 +437,9 @@ export class Calculation implements INodeType {
         try {
           responseData = await this.helpers.httpRequest!(options);
         } catch (error) {
+          const err: any = error;
           throw new Error(
-            `Calculation request failed: ${error.message || error.toString()}`,
+            `Calculation request failed: ${err?.message || err?.toString?.() || err}`,
           );
         }
         returnData.push({ json: responseData });
