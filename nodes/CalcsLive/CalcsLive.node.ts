@@ -96,7 +96,8 @@ export class CalcsLive implements INodeType {
 
 			// Load unit options for a specific symbol - dynamic per PQ
 			async getUnitsForSymbol(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				console.log('🔍 getUnitsForSymbol called - user may have selected a symbol');
+				console.log('\n🔍 === getUnitsForSymbol called ===');
+				console.log('⏰ Timestamp:', new Date().toISOString());
 				
 				// Debug: Get all current parameters to understand the context
 				const allParams = this.getCurrentNodeParameters();
@@ -105,38 +106,107 @@ export class CalcsLive implements INodeType {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
 				let symbolParam: string | undefined;
 				
-				// Get symbol from the fixedCollection context - find the item that's currently being edited
-				// This is tricky because n8n doesn't clearly indicate which item is being edited
-				// Let's try multiple approaches to find the current symbol
+				// Try to get the symbol using n8n's parameter system first
+				try {
+					symbolParam = this.getCurrentNodeParameter('symbol') as string;
+					console.log('✅ Got symbol via getCurrentNodeParameter:', symbolParam);
+				} catch (e) {
+					console.log('❌ getCurrentNodeParameter failed:', e);
+				}
 				
-				if (allParams && typeof allParams === 'object') {
-					// Method 1: Look for the most recently added/modified item (non-empty symbol)
-					const inputPQs = (allParams as any).inputPQs;
-					if (inputPQs && inputPQs.pq && Array.isArray(inputPQs.pq)) {
-						// Find the last item with a selected symbol (most likely the one being edited)
-						for (let i = inputPQs.pq.length - 1; i >= 0; i--) {
-							const item = inputPQs.pq[i];
-							if (item.symbol && item.symbol !== '') {
-								symbolParam = item.symbol;
-								console.log('✅ Found symbol from input PQ item:', symbolParam);
-								break;
-							}
-						}
+				// Also try alternative parameter paths that n8n might use
+				if (!symbolParam || symbolParam === '') {
+					try {
+						// Try to get symbol from the current item context
+						const currentItem = this.getCurrentNodeParameter('inputPQs.pq.symbol') as string;
+						console.log('🔍 Trying inputPQs.pq.symbol path:', currentItem);
+						symbolParam = currentItem;
+					} catch (e) {
+						console.log('❌ Alternative path failed:', e);
 					}
+				}
+				
+				// ENHANCED DEBUGGING: Try to understand which specific field is calling this
+				console.log('🔍 ENHANCED DEBUG - Analyzing field context...');
+				
+				// If that doesn't work, try the current context approach
+				if (!symbolParam) {
+					console.log('🔍 Trying to extract symbol from context...');
 					
-					// Also check outputPQs
-					if (!symbolParam) {
+					// The challenge: n8n calls this for each unit field, but we need to know WHICH row's unit field
+					// Let's try to get the symbol from context, but be smarter about it
+					if (allParams && typeof allParams === 'object') {
+						// Look through all PQ items and see if we can determine which one is being edited
+						const inputPQs = (allParams as any).inputPQs;
 						const outputPQs = (allParams as any).outputPQs;
-						if (outputPQs && outputPQs.pq && Array.isArray(outputPQs.pq)) {
-							for (let i = outputPQs.pq.length - 1; i >= 0; i--) {
-								const item = outputPQs.pq[i];
+						
+						console.log('📋 Input PQs raw:', inputPQs);
+						console.log('📋 Output PQs raw:', outputPQs);
+						
+						// Collect all symbols that exist with their full context
+						const allSymbolsWithContext: Array<{
+							symbol: string;
+							value?: any;
+							unit?: string;
+							type: 'input' | 'output';
+							index: number;
+						}> = [];
+						if (inputPQs && inputPQs.pq && Array.isArray(inputPQs.pq)) {
+							inputPQs.pq.forEach((item: any, index: number) => {
+								console.log(`🔍 Input PQ [${index}]:`, item);
 								if (item.symbol && item.symbol !== '') {
-									symbolParam = item.symbol;
-									console.log('✅ Found symbol from output PQ item:', symbolParam);
-									break;
+									allSymbolsWithContext.push({
+										symbol: item.symbol,
+										value: item.value,
+										unit: item.unit,
+										type: 'input',
+										index: index
+									});
 								}
+							});
+						}
+						if (outputPQs && outputPQs.pq && Array.isArray(outputPQs.pq)) {
+							outputPQs.pq.forEach((item: any, index: number) => {
+								if (item.symbol && item.symbol !== '') {
+									allSymbolsWithContext.push({
+										symbol: item.symbol,
+										unit: item.unit,
+										type: 'output', 
+										index: index
+									});
+								}
+							});
+						}
+						
+						console.log('🔍 All symbols with context:', allSymbolsWithContext);
+						
+						// Enhanced logic: try to determine which row is being edited
+						// Look for rows with symbols but missing or empty units (likely the one being edited)
+						const incompleteRows = allSymbolsWithContext.filter(row => 
+							row.symbol && row.symbol !== '' && (!row.unit || row.unit === '')
+						);
+						
+						console.log('🎯 Incomplete rows (likely being edited):', incompleteRows);
+						
+						if (incompleteRows.length === 1) {
+							// Perfect! Only one row is incomplete, this must be the one being edited
+							symbolParam = incompleteRows[0].symbol;
+							console.log('✅ SMART DETECTION: Using symbol from incomplete row:', symbolParam);
+						} else if (incompleteRows.length > 1) {
+							// Multiple incomplete rows - use the last one (most recently added)
+							symbolParam = incompleteRows[incompleteRows.length - 1].symbol;
+							console.log('⚠️ Multiple incomplete rows, using last one:', symbolParam);
+						} else {
+							// All rows have units or no incomplete rows found
+							// Fall back to the most recently selected symbol (last in array)
+							const allSymbols = allSymbolsWithContext.map(row => row.symbol);
+							if (allSymbols.length > 0) {
+								symbolParam = allSymbols[allSymbols.length - 1];
+								console.log('⚠️ No incomplete rows, using last symbol:', symbolParam);
 							}
 						}
+						
+						console.log('🎯 DETECTION RESULT: symbolParam =', symbolParam);
 					}
 				}
 				
@@ -147,10 +217,19 @@ export class CalcsLive implements INodeType {
 					return [{ name: 'Enter Article ID first', value: '' }];
 				}
 				
-				if (!symbolParam || symbolParam === '') {
-					console.log('❌ No symbolParam or empty string');
-					return [{ name: 'Select symbol first', value: '' }];
+				if (!symbolParam || symbolParam === '' || symbolParam === 'undefined' || symbolParam === 'null') {
+					console.log('❌ No symbolParam or empty/invalid string. Value:', symbolParam);
+					console.log('❌ This means no symbol has been selected yet');
+					
+					// Return a clear message indicating that symbol must be selected first
+					return [{ 
+						name: '← Select a symbol first', 
+						value: '',
+						description: 'Choose a physical quantity symbol before selecting units'
+					}];
 				}
+				
+				console.log('✅ symbolParam found:', symbolParam, typeof symbolParam);
 				
 				// Extract actual symbol from JSON metadata if needed
 				let actualSymbol = symbolParam;
@@ -178,10 +257,26 @@ export class CalcsLive implements INodeType {
 					
 					// Find the PQ by symbol to get its categoryId
 					const allPQs = [...(response.metadata.inputPQs || []), ...(response.metadata.outputPQs || [])];
-					console.log('📋 All PQs:', allPQs.map((pq: any) => pq.symbol));
+					console.log('📋 All PQs available in current calc:', allPQs.map((pq: any) => pq.symbol));
+					console.log('🔍 Looking for symbol:', actualSymbol);
 					
 					const pqData = allPQs.find((pq: any) => pq.symbol === actualSymbol);
-					console.log('🎯 Found PQ data:', pqData);
+					console.log('🎯 Found PQ data for symbol "' + actualSymbol + '":', pqData);
+					
+					if (!pqData) {
+						console.log('❌ STALE DATA DETECTED: Symbol "' + actualSymbol + '" not found in current calc');
+						console.log('💡 User needs to remove old PQ rows and add new ones after changing articleId');
+						return [{ 
+							name: `⚠️ Stale Data: "${actualSymbol}" not in current calc`, 
+							value: '' 
+						}, {
+							name: `Available symbols: ${allPQs.map((pq: any) => pq.symbol).join(', ')}`,
+							value: ''
+						}, {
+							name: '💡 Remove this row and add a new one',
+							value: ''
+						}];
+					}
 					
 					if (!pqData || !pqData.categoryId) {
 						return [{ name: `PQ "${actualSymbol}" not found`, value: '' }];
@@ -197,12 +292,30 @@ export class CalcsLive implements INodeType {
 						return [{ name: 'No units available', value: '' }];
 					}
 					
-					const options = availableUnits.map((unit: string) => ({
-						name: unit,
-						value: unit,
-					}));
+					// Prioritize the original unit from the calc by placing it first
+					const originalUnit = pqData.unit;
+					const options = [];
 					
-					console.log('✅ Returning unit options:', options);
+					// Add original unit first if it exists in available units
+					if (originalUnit && availableUnits.includes(originalUnit)) {
+						options.push({
+							name: `${originalUnit} (default)`,
+							value: originalUnit,
+						});
+					}
+					
+					// Add all other units (excluding the original to avoid duplicates)
+					availableUnits.forEach((unit: string) => {
+						if (unit !== originalUnit) {
+							options.push({
+								name: unit,
+								value: unit,
+							});
+						}
+					});
+					
+					console.log('✅ Returning unit options with default first:', options);
+					console.log(`🎯 Original unit "${originalUnit}" placed first as default`);
 					return options;
 					
 				} catch (error: any) {
@@ -345,7 +458,6 @@ export class CalcsLive implements INodeType {
 				type: 'fixedCollection',
 				typeOptions: {
 					multipleValues: true,
-					sortable: false,
 				},
 				displayOptions: {
 					show: {
@@ -354,7 +466,7 @@ export class CalcsLive implements INodeType {
 						configMode: ['enhanced'],
 					},
 				},
-				default: {},
+				default: {    },
 				placeholder: 'Add Input PQ',
 				options: [
 					{
@@ -376,7 +488,7 @@ export class CalcsLive implements INodeType {
 								displayName: 'Value',
 								name: 'value',
 								type: 'number',
-								default: '',
+								default: undefined,
 								description: 'Enter the numeric value (leave empty to use calc default). Will auto-populate during execution if empty.',
 							},
 							{
@@ -385,7 +497,7 @@ export class CalcsLive implements INodeType {
 								type: 'options',
 								typeOptions: {
 									loadOptionsMethod: 'getUnitsForSymbol',
-									loadOptionsDependsOn: ['articleId', '$.symbol'],
+									loadOptionsDependsOn: ['articleId', 'symbol'],
 								},
 								default: '',
 								description: 'Select the unit for this quantity (leave empty to use calc default). Will auto-populate during execution if empty.',
@@ -393,7 +505,7 @@ export class CalcsLive implements INodeType {
 						],
 					},
 				],
-				description: 'Configure input physical quantities with their values and units. Note: When you change the Article ID above, please remove and re-add PQ rows to ensure they match the new calc.',
+				description: '⚠️ IMPORTANT: When you change Article ID, you MUST remove all old PQ rows and add new ones. Old rows contain stale symbols that don\'t exist in the new calc.',
 			},
 			// Enhanced mode - Output PQ configuration
 			{
@@ -434,7 +546,7 @@ export class CalcsLive implements INodeType {
 								type: 'options',
 								typeOptions: {
 									loadOptionsMethod: 'getUnitsForSymbol',
-									loadOptionsDependsOn: ['articleId', '$.symbol'],
+									loadOptionsDependsOn: ['articleId', 'symbol'],
 								},
 								default: '',
 								description: 'Select the desired output unit',
@@ -442,7 +554,7 @@ export class CalcsLive implements INodeType {
 						],
 					},
 				],
-				description: 'Configure output physical quantities and their desired units. Note: When you change the Article ID above, please remove and re-add PQ rows to ensure they match the new calc.',
+				description: '⚠️ IMPORTANT: When you change Article ID, you MUST remove all old PQ rows and add new ones. Old rows contain stale symbols that don\'t exist in the new calc.',
 			},
 		],
 	};
@@ -470,8 +582,8 @@ export class CalcsLive implements INodeType {
 							});
 						}
 
-						let inputs: object;
-						let outputs: object | undefined;
+						let inputs: any;
+						let outputs: any;
 
 						if (configMode === 'legacy') {
 							// Legacy mode - manual JSON input with optional outputs
