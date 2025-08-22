@@ -6,6 +6,14 @@ import type {
   INodeTypeDescription,
 } from 'n8n-workflow';
 
+// A simple in‑memory cache for article metadata. When the validate endpoint is
+// called via getInputPqs/getOutputPqs the returned metadata is stored here
+// keyed by articleId. Subsequent calls to load units for a given PQ can
+// retrieve the metadata locally without performing an additional network
+// request. Note: this cache is not persisted across server restarts and is
+// shared across all instances of this node.
+const metadataCache: Record<string, any> = {};
+
 /**
  * Custom n8n node for interacting with calculation articles.
  *
@@ -124,23 +132,24 @@ export class Calculation implements INodeType {
                 options: [],
                 default: '',
                 description:
-                  'Unit for the value. The dropdown contains all known units for this article.',
-                // Use a common unit list for all PQs. This avoids empty dropdowns when
-                // dynamic loading is not supported in the editor. At runtime the
-                // default unit will be applied if none is provided.
+                  'Unit for the value. Only units compatible with the selected PQ are shown.',
+                // Load units dynamically based on the selected PQ symbol. When the symbol
+                // changes the list of units will refresh. If the metadata has not
+                // been loaded yet the dropdown may be empty until validate is called.
                 typeOptions: {
-                  loadOptionsMethod: 'getUnits',
+                  loadOptionsMethod: 'getUnitsForInput',
+                  loadOptionsDependsOn: ['symbol'],
                 },
               },
-            ],
+            ], // values
           },
-        ],
+        ], // options
         displayOptions: {
           show: {
             operation: ['calculate'],
           },
         },
-      },
+      }, // inputs
       {
         displayName: 'Selected Output PQs',
         name: 'outputs',
@@ -174,22 +183,23 @@ export class Calculation implements INodeType {
                 options: [],
                 default: '',
                 description:
-                  'Preferred unit for the output value. Leave empty to use the article\'s default unit. The dropdown contains all known units for this article.',
+                  'Preferred unit for the output value. Leave empty to use the article\'s default unit. Only units compatible with the selected PQ are shown.',
                 typeOptions: {
-                  loadOptionsMethod: 'getUnits',
+                  loadOptionsMethod: 'getUnitsForOutput',
+                  loadOptionsDependsOn: ['symbol'],
                 },
               },
-            ],
-          },
+            ], // values
+          }, // options
         ],
         displayOptions: {
           show: {
             operation: ['calculate'],
           },
         },
-      },
-    ],
-  };
+      }, // outputs
+    ],//properties
+  }; // description
 
   /**
    * Dynamically loads input PQs for the given article.
@@ -202,6 +212,10 @@ export class Calculation implements INodeType {
   methods = {
     loadOptions: {
       async getInputPqs(this: any): Promise<INodePropertyOptions[]> {
+        console.log(`@getInputPQs`)
+        console.log(`metadataCache: ${metadataCache}`)
+        console.log(JSON.stringify(metadataCache, null, 2))
+        console.dir(metadataCache)
         const articleId = this.getCurrentNodeParameter('articleId') as string;
         if (!articleId) {
           return [];
@@ -229,6 +243,10 @@ export class Calculation implements INodeType {
           // If the request fails we return an empty list of options
           return [];
         }
+        // Store metadata in the cache for later use
+        if (response?.metadata) {
+          metadataCache[articleId] = response.metadata;
+        }
         const result: INodePropertyOptions[] = [];
         const inputPQs = response?.metadata?.inputPQs;
         if (Array.isArray(inputPQs)) {
@@ -245,7 +263,7 @@ export class Calculation implements INodeType {
           }
         }
         return result;
-      },
+      }, // getInputPQs
       /**
        * Dynamically loads output PQs for the given article.
        */
@@ -273,6 +291,9 @@ export class Calculation implements INodeType {
         } catch (error) {
           return [];
         }
+        if (response?.metadata) {
+          metadataCache[articleId] = response.metadata;
+        }
         const result: INodePropertyOptions[] = [];
         const outputPQs = response?.metadata?.outputPQs;
         if (Array.isArray(outputPQs)) {
@@ -289,7 +310,7 @@ export class Calculation implements INodeType {
           }
         }
         return result;
-      },
+      }, // getOutputPqs
       /**
        * Returns a flattened list of all available units for the current article.
        * Each unit will appear as both name and value. If multiple categories
@@ -300,27 +321,38 @@ export class Calculation implements INodeType {
         if (!articleId) {
           return [];
         }
-        const credentials = (await this.getCredentials('calculationApi')) as {
-          baseUrl: string;
-          apiKey: string;
-        };
-        const baseUrl = (credentials.baseUrl || '').replace(/\/?$/, '');
-        const apiKey = credentials.apiKey;
-        const qs = { articleId, apiKey };
-        const options = {
-          method: 'GET' as const,
-          url: `${baseUrl}/api/n8n/validate`,
-          qs,
-          json: true,
-        };
-        let response;
-        try {
-          response = await this.helpers.httpRequest!(options);
-        } catch (error) {
-          return [];
+        let availableUnits: any;
+        // Try to read from cache first
+        if (metadataCache[articleId]) {
+          availableUnits = metadataCache[articleId].availableUnits;
+        }
+        // If not cached, attempt a network call to retrieve the units
+        if (!availableUnits) {
+          const credentials = (await this.getCredentials('calculationApi')) as {
+            baseUrl: string;
+            apiKey: string;
+          };
+          const baseUrl = (credentials.baseUrl || '').replace(/\/?$/, '');
+          const apiKey = credentials.apiKey;
+          const qs = { articleId, apiKey };
+          const options = {
+            method: 'GET' as const,
+            url: `${baseUrl}/api/n8n/validate`,
+            qs,
+            json: true,
+          };
+          let response;
+          try {
+            response = await this.helpers.httpRequest!(options);
+          } catch (error) {
+            availableUnits = undefined;
+          }
+          if (response?.metadata) {
+            metadataCache[articleId] = response.metadata;
+            availableUnits = response.metadata.availableUnits;
+          }
         }
         const unitsMap: Record<string, true> = {};
-        const availableUnits = response?.metadata?.availableUnits;
         if (availableUnits && typeof availableUnits === 'object') {
           for (const category of Object.values(availableUnits) as unknown as string[][]) {
             if (Array.isArray(category)) {
@@ -330,15 +362,13 @@ export class Calculation implements INodeType {
             }
           }
         }
-        // Fall back to a common set if none returned
         if (Object.keys(unitsMap).length === 0) {
-          // Provide some basic SI units as a fallback
           ['m', 's', 'kg', 'A', 'K', 'mol', 'cd'].forEach((u) => {
             unitsMap[u] = true;
           });
         }
         return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
-      },
+      }, // getUnits
 
       /**
        * Returns the units available for a specific input PQ. This function
@@ -352,59 +382,42 @@ export class Calculation implements INodeType {
         if (!articleId || !symbol) {
           return [];
         }
-        const credentials = (await this.getCredentials('calculationApi')) as {
-          baseUrl: string;
-          apiKey: string;
-        };
-        const baseUrl = (credentials.baseUrl || '').replace(/\/?$/, '');
-        const apiKey = credentials.apiKey;
-        const qs = { articleId, apiKey };
-        const options = {
-          method: 'GET' as const,
-          url: `${baseUrl}/api/n8n/validate`,
-          qs,
-          json: true,
-        };
-        let response;
-        try {
-          response = await this.helpers.httpRequest!(options);
-        } catch (error) {
-          return [];
-        }
-        const inputPQs = response?.metadata?.inputPQs;
-        const availableUnits = response?.metadata?.availableUnits;
-        // Try to find the categoryId for the selected symbol
-        let categoryId: string | undefined;
-        if (Array.isArray(inputPQs)) {
-          for (const pq of inputPQs) {
-            if (pq.symbol === symbol) {
-              categoryId = pq.categoryId;
-              break;
-            }
-          }
-        }
-        if (categoryId && availableUnits && availableUnits[categoryId]) {
-          const units: string[] = availableUnits[categoryId] as string[];
-          return units.map((u) => ({ name: u, value: u }));
-        }
-        // Fallback to flattened list of all available units in the article
-        const unitsMap: Record<string, true> = {};
-        if (availableUnits && typeof availableUnits === 'object') {
-          for (const category of Object.values(availableUnits) as unknown as string[][]) {
-            if (Array.isArray(category)) {
-              for (const unit of category) {
-                unitsMap[unit] = true;
+        // Attempt to read metadata from cache instead of performing a network call
+        const metadata = metadataCache[articleId];
+        if (metadata) {
+          const inputPQs = metadata.inputPQs;
+          const availableUnits = metadata.availableUnits;
+          let categoryId: string | undefined;
+          if (Array.isArray(inputPQs)) {
+            for (const pq of inputPQs) {
+              if (pq.symbol === symbol) {
+                categoryId = pq.categoryId;
+                break;
               }
             }
           }
-        }
-        if (Object.keys(unitsMap).length === 0) {
-          ['m', 's', 'kg', 'A', 'K', 'mol', 'cd'].forEach((u) => {
-            unitsMap[u] = true;
-          });
-        }
-        return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
-      },
+          if (categoryId && availableUnits && availableUnits[categoryId]) {
+            const units: string[] = availableUnits[categoryId] as string[];
+            return units.map((u) => ({ name: u, value: u }));
+          }
+          // Fallback to aggregated list from metadata
+          const unitsMap: Record<string, true> = {};
+          if (availableUnits && typeof availableUnits === 'object') {
+            for (const category of Object.values(availableUnits) as unknown as string[][]) {
+              if (Array.isArray(category)) {
+                for (const unit of category) {
+                  unitsMap[unit] = true;
+                }
+              }
+            }
+          }
+          if (Object.keys(unitsMap).length > 0) {
+            return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
+          }
+        } // if metadata
+        // If nothing is cached, return an empty list so the dropdown doesn\'t break
+        return [];
+      }, // getUnitsForInput
 
       /**
        * Returns the units available for a specific output PQ.
@@ -415,60 +428,44 @@ export class Calculation implements INodeType {
         if (!articleId || !symbol) {
           return [];
         }
-        const credentials = (await this.getCredentials('calculationApi')) as {
-          baseUrl: string;
-          apiKey: string;
-        };
-        const baseUrl = (credentials.baseUrl || '').replace(/\/?$/, '');
-        const apiKey = credentials.apiKey;
-        const qs = { articleId, apiKey };
-        const options = {
-          method: 'GET' as const,
-          url: `${baseUrl}/api/n8n/validate`,
-          qs,
-          json: true,
-        };
-        let response;
-        try {
-          response = await this.helpers.httpRequest!(options);
-        } catch (error) {
-          return [];
-        }
-        const outputPQs = response?.metadata?.outputPQs;
-        const availableUnits = response?.metadata?.availableUnits;
-        let categoryId: string | undefined;
-        if (Array.isArray(outputPQs)) {
-          for (const pq of outputPQs) {
-            if (pq.symbol === symbol) {
-              categoryId = pq.categoryId;
-              break;
-            }
-          }
-        }
-        if (categoryId && availableUnits && availableUnits[categoryId]) {
-          const units: string[] = availableUnits[categoryId] as string[];
-          return units.map((u) => ({ name: u, value: u }));
-        }
-        // Fallback to flattened list of all available units in the article
-        const unitsMap: Record<string, true> = {};
-        if (availableUnits && typeof availableUnits === 'object') {
-          for (const category of Object.values(availableUnits) as unknown as string[][]) {
-            if (Array.isArray(category)) {
-              for (const unit of category) {
-                unitsMap[unit] = true;
+        // Attempt to read metadata from cache instead of performing a network call
+        const metadata = metadataCache[articleId];
+        if (metadata) {
+          const outputPQs = metadata.outputPQs;
+          const availableUnits = metadata.availableUnits;
+          let categoryId: string | undefined;
+          if (Array.isArray(outputPQs)) {
+            for (const pq of outputPQs) {
+              if (pq.symbol === symbol) {
+                categoryId = pq.categoryId;
+                break;
               }
             }
           }
-        }
-        if (Object.keys(unitsMap).length === 0) {
-          ['m', 's', 'kg', 'A', 'K', 'mol', 'cd'].forEach((u) => {
-            unitsMap[u] = true;
-          });
-        }
-        return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
-      },
-    },
-  };
+          if (categoryId && availableUnits && availableUnits[categoryId]) {
+            const units: string[] = availableUnits[categoryId] as string[];
+            return units.map((u) => ({ name: u, value: u }));
+          }
+          // Fallback to aggregated list from metadata
+          const unitsMap: Record<string, true> = {};
+          if (availableUnits && typeof availableUnits === 'object') {
+            for (const category of Object.values(availableUnits) as unknown as string[][]) {
+              if (Array.isArray(category)) {
+                for (const unit of category) {
+                  unitsMap[unit] = true;
+                }
+              }
+            }
+          }
+          if (Object.keys(unitsMap).length > 0) {
+            return Object.keys(unitsMap).map((unit) => ({ name: unit, value: unit }));
+          }
+        } // if (metadata)
+        // If nothing is cached, return an empty list so the dropdown doesn\'t break
+        return [];
+      }, // getUnitsForOutput
+    }, // loadOptions
+  }; // methods
 
   /**
    * Execute the node.
@@ -516,22 +513,27 @@ export class Calculation implements INodeType {
           returnData.push({ json: responseData?.metadata || {} });
         }
       } else if (operation === 'calculate') {
-        // Load article metadata once to determine default values and units
-        let metadata: any;
-        try {
-          const validateOptions = {
-            method: 'GET' as const,
-            url: `${baseUrl}/api/n8n/validate`,
-            qs: { articleId, apiKey },
-            json: true,
-          };
-          const validateResponse = await this.helpers.httpRequest!(validateOptions);
-          metadata = validateResponse?.metadata;
-        } catch (error) {
-          const err: any = error;
-          throw new Error(
-            `Unable to load article metadata for calculation: ${err?.message || err?.toString?.() || err}`,
-          );
+        // Retrieve metadata from the in‑memory cache or via the validate endpoint
+        let metadata: any = metadataCache[articleId];
+        if (!metadata) {
+          try {
+            const validateOptions = {
+              method: 'GET' as const,
+              url: `${baseUrl}/api/n8n/validate`,
+              qs: { articleId, apiKey },
+              json: true,
+            };
+            const validateResponse = await this.helpers.httpRequest!(validateOptions);
+            metadata = validateResponse?.metadata;
+            if (metadata) {
+              metadataCache[articleId] = metadata;
+            }
+          } catch (error) {
+            const err: any = error;
+            throw new Error(
+              `Unable to load article metadata for calculation: ${err?.message || err?.toString?.() || err}`,
+            );
+          }
         }
         const inputPqMap: Record<string, any> = {};
         const outputPqMap: Record<string, any> = {};
@@ -621,7 +623,7 @@ export class Calculation implements INodeType {
         }
         returnData.push({ json: responseData });
       }
-    }
+    } // for loop
     return [returnData];
-  }
+  } // execute
 }
