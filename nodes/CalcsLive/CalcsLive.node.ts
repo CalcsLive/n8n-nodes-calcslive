@@ -9,11 +9,15 @@ import {
 	NodeConnectionType,
 } from 'n8n-workflow';
 
+// Metadata cache for article data - reduces API calls and improves performance
+// Cache is keyed by articleId and stores the full metadata response
+const metadataCache: Record<string, any> = {};
+
 export class CalcsLive implements INodeType {
 	methods = {
 		loadOptions: {
 			
-			// Load available input PQs from validate endpoint - truly dynamic
+			// Load available input PQs from validate endpoint with caching
 			async getInputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
 				
@@ -23,42 +27,57 @@ export class CalcsLive implements INodeType {
 					return [{ name: 'Enter Article ID first', value: '' }];
 				}
 				
-				try {
-					const credentials = await this.getCredentials('calcsLiveApi');
-					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-					
-					console.log('🌐 Fetching validate API for articleId:', articleId);
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-					});
-					
-					console.log('✅ Validate API response received for:', articleId);
-					
-					if (!response.success || !response.metadata?.inputPQs) {
-						return [{ name: 'No input PQs found', value: '' }];
+				// Check cache first
+				let metadata = metadataCache[articleId];
+				
+				if (!metadata) {
+					console.log('💾 Cache miss - fetching metadata for:', articleId);
+					try {
+						const credentials = await this.getCredentials('calcsLiveApi');
+						const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+						
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+							url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+						});
+						
+						console.log('✅ Validate API response received for:', articleId);
+						
+						if (response.success && response.metadata) {
+							metadata = response.metadata;
+							metadataCache[articleId] = metadata;
+							console.log('💾 Cached metadata for:', articleId);
+						} else {
+							return [{ name: 'No input PQs found', value: '' }];
+						}
+					} catch (error: any) {
+						console.log('❌ API error:', error.message);
+						return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
 					}
-					
-					// Show just the symbol names, embed metadata for later use
-					const options = response.metadata.inputPQs.map((pq: any) => ({
-						name: pq.symbol, // Just the symbol (D, t, x, y, etc.)
-						value: JSON.stringify({
-							symbol: pq.symbol,
-							faceValue: pq.faceValue,
-							unit: pq.unit,
-							categoryId: pq.categoryId
-						}), // Embed metadata in value for later use
-					}));
-					
-					return options;
-					
-				} catch (error: any) {
-					return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
+				} else {
+					console.log('⚡ Cache hit - using cached metadata for:', articleId);
 				}
+				
+				if (!metadata?.inputPQs) {
+					return [{ name: 'No input PQs found', value: '' }];
+				}
+				
+				// Show just the symbol names, embed metadata for later use
+				const options = metadata.inputPQs.map((pq: any) => ({
+					name: pq.symbol, // Just the symbol (D, t, x, y, etc.)
+					value: JSON.stringify({
+						symbol: pq.symbol,
+						faceValue: pq.faceValue,
+						unit: pq.unit,
+						categoryId: pq.categoryId
+					}), // Embed metadata in value for later use
+				}));
+				
+				return options;
 			},
 
 			
-			// Load available output PQs from validate endpoint - truly dynamic  
+			// Load available output PQs from validate endpoint with caching  
 			async getOutputPQs(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const articleId = this.getCurrentNodeParameter('articleId') as string;
 				
@@ -66,32 +85,47 @@ export class CalcsLive implements INodeType {
 					return [{ name: 'Enter Article ID first', value: '' }];
 				}
 				
-				try {
-					const credentials = await this.getCredentials('calcsLiveApi');
-					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-					});
-					
-					if (!response.success || !response.metadata?.outputPQs) {
-						return [{ name: 'No output PQs found', value: '' }];
+				// Check cache first
+				let metadata = metadataCache[articleId];
+				
+				if (!metadata) {
+					console.log('💾 Cache miss in getOutputPQs - fetching metadata for:', articleId);
+					try {
+						const credentials = await this.getCredentials('calcsLiveApi');
+						const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+							url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+						});
+						
+						if (response.success && response.metadata) {
+							metadata = response.metadata;
+							metadataCache[articleId] = metadata;
+							console.log('💾 Cached metadata for:', articleId);
+						} else {
+							return [{ name: 'No output PQs found', value: '' }];
+						}
+					} catch (error: any) {
+						return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
 					}
-					
-					const options = response.metadata.outputPQs.map((pq: any) => ({
-						name: pq.symbol, // Just the symbol (v, s, result, etc.)
-						value: JSON.stringify({
-							symbol: pq.symbol,
-							unit: pq.unit,
-							categoryId: pq.categoryId
-						}), // Embed metadata in value for later use
-					}));
-					
-					return options;
-					
-				} catch (error: any) {
-					return [{ name: `Error: ${error.message || 'Failed to load'}`, value: '' }];
+				} else {
+					console.log('⚡ Cache hit in getOutputPQs - using cached metadata for:', articleId);
 				}
+				
+				if (!metadata?.outputPQs) {
+					return [{ name: 'No output PQs found', value: '' }];
+				}
+				
+				const options = metadata.outputPQs.map((pq: any) => ({
+					name: pq.symbol, // Just the symbol (v, s, result, etc.)
+					value: JSON.stringify({
+						symbol: pq.symbol,
+						unit: pq.unit,
+						categoryId: pq.categoryId
+					}), // Embed metadata in value for later use
+				}));
+				
+				return options;
 			},
 
 			// Load unit options for a specific symbol - dynamic per PQ
@@ -241,27 +275,43 @@ export class CalcsLive implements INodeType {
 					console.log('ℹ️ Symbol is plain string:', actualSymbol);
 				}
 				
-				try {
-					const credentials = await this.getCredentials('calcsLiveApi');
-					const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-					const response = await this.helpers.httpRequest({
-						method: 'GET',
-						url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-					});
-					
-					console.log('🌐 API Response success:', response.success);
-					
-					if (!response.success || !response.metadata) {
-						return [{ name: 'No metadata found', value: '' }];
+				// Check cache first before making API call
+				let metadata = metadataCache[articleId];
+				
+				if (!metadata) {
+					console.log('💾 Cache miss in getUnitsForSymbol - fetching metadata for:', articleId);
+					try {
+						const credentials = await this.getCredentials('calcsLiveApi');
+						const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+						const response = await this.helpers.httpRequest({
+							method: 'GET',
+							url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+						});
+						
+						console.log('🌐 API Response success:', response.success);
+						
+						if (response.success && response.metadata) {
+							metadata = response.metadata;
+							metadataCache[articleId] = metadata;
+							console.log('💾 Cached metadata for:', articleId);
+						} else {
+							return [{ name: 'No metadata found', value: '' }];
+						}
+					} catch (error: any) {
+						console.log('❌ Error in getUnitsForSymbol:', error);
+						return [{ name: `Error: ${error.message}`, value: '' }];
 					}
-					
-					// Find the PQ by symbol to get its categoryId
-					const allPQs = [...(response.metadata.inputPQs || []), ...(response.metadata.outputPQs || [])];
-					console.log('📋 All PQs available in current calc:', allPQs.map((pq: any) => pq.symbol));
-					console.log('🔍 Looking for symbol:', actualSymbol);
-					
-					const pqData = allPQs.find((pq: any) => pq.symbol === actualSymbol);
-					console.log('🎯 Found PQ data for symbol "' + actualSymbol + '":', pqData);
+				} else {
+					console.log('⚡ Cache hit in getUnitsForSymbol - using cached metadata for:', articleId);
+				}
+				
+				// Find the PQ by symbol to get its categoryId
+				const allPQs = [...(metadata.inputPQs || []), ...(metadata.outputPQs || [])];
+				console.log('📋 All PQs available in current calc:', allPQs.map((pq: any) => pq.symbol));
+				console.log('🔍 Looking for symbol:', actualSymbol);
+				
+				const pqData = allPQs.find((pq: any) => pq.symbol === actualSymbol);
+				console.log('🎯 Found PQ data for symbol "' + actualSymbol + '":', pqData);
 					
 					if (!pqData) {
 						console.log('❌ STALE DATA DETECTED: Symbol "' + actualSymbol + '" not found in current calc');
@@ -283,7 +333,7 @@ export class CalcsLive implements INodeType {
 					}
 					
 					const categoryId = pqData.categoryId;
-					const availableUnits = response.metadata.availableUnits?.[categoryId];
+					const availableUnits = metadata.availableUnits?.[categoryId];
 					
 					console.log('🏷️ CategoryId:', categoryId);
 					console.log('📏 Available units:', availableUnits);
@@ -317,11 +367,6 @@ export class CalcsLive implements INodeType {
 					console.log('✅ Returning unit options with default first:', options);
 					console.log(`🎯 Original unit "${originalUnit}" placed first as default`);
 					return options;
-					
-				} catch (error: any) {
-					console.log('❌ Error in getUnitsForSymbol:', error);
-					return [{ name: `Error: ${error.message}`, value: '' }];
-				}
 			},
 		},
 	};
@@ -626,55 +671,75 @@ export class CalcsLive implements INodeType {
 								// No PQs configured - behave like legacy mode (use all calc defaults)
 								console.log('🎯 No PQs configured - using legacy mode behavior (all calc defaults)');
 								
-								// Get calc defaults from validate API
-								const credentials = await this.getCredentials('calcsLiveApi');
-								const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+								// Get calc defaults from cache or API
+								let metadata = metadataCache[articleId];
 								
-								console.log('🌐 Fetching calc defaults from validate API for articleId:', articleId);
-								const validateResponse = await this.helpers.httpRequest({
-									method: 'GET',
-									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-								});
-								
-								if (validateResponse.success && validateResponse.metadata) {
-									// Build inputs from all input PQs with their default values
-									inputs = {};
-									if (validateResponse.metadata.inputPQs) {
-										for (const pq of validateResponse.metadata.inputPQs) {
-											inputs[pq.symbol] = {
-												value: pq.faceValue || 1,
-												unit: pq.unit || ''
-											};
-											console.log(`🔧 Using calc default for ${pq.symbol}:`, inputs[pq.symbol]);
-										}
-									}
+								if (!metadata) {
+									console.log('💾 Cache miss in execute - fetching metadata for articleId:', articleId);
+									const credentials = await this.getCredentials('calcsLiveApi');
+									const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
 									
-									// Leave outputs undefined to get all outputs with default units
-									outputs = undefined;
-									console.log('📤 Using all calc default outputs');
-								} else {
-									throw new NodeOperationError(this.getNode(), 'Failed to fetch calc defaults from validate API', {
-										itemIndex: i,
+									const validateResponse = await this.helpers.httpRequest({
+										method: 'GET',
+										url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
 									});
+									
+									if (validateResponse.success && validateResponse.metadata) {
+										metadata = validateResponse.metadata;
+										metadataCache[articleId] = metadata;
+										console.log('💾 Cached metadata in execute for:', articleId);
+									} else {
+										throw new NodeOperationError(this.getNode(), 'Failed to fetch calc defaults from validate API', {
+											itemIndex: i,
+										});
+									}
+								} else {
+									console.log('⚡ Cache hit in execute - using cached metadata for:', articleId);
 								}
+								
+								// Build inputs from all input PQs with their default values
+								inputs = {};
+								if (metadata.inputPQs) {
+									for (const pq of metadata.inputPQs) {
+										inputs[pq.symbol] = {
+											value: pq.faceValue || 1,
+											unit: pq.unit || ''
+										};
+										console.log(`🔧 Using calc default for ${pq.symbol}:`, inputs[pq.symbol]);
+									}
+								}
+								
+								// Leave outputs undefined to get all outputs with default units
+								outputs = undefined;
+								console.log('📤 Using all calc default outputs');
 							} else {
 								// User has configured specific PQs - use enhanced mode behavior
 								console.log('🎯 PQs configured - using enhanced mode behavior');
 								
-								// First, get current calc metadata to validate PQ selections
-								const credentials = await this.getCredentials('calcsLiveApi');
-								const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+								// Get current calc metadata from cache or API to validate PQ selections
+								let metadata = metadataCache[articleId];
 								
-								console.log('🌐 Fetching current calc metadata to validate PQ selections');
-								const validateResponse = await this.helpers.httpRequest({
-									method: 'GET',
-									url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
-								});
-								
-								if (!validateResponse.success || !validateResponse.metadata) {
-									throw new NodeOperationError(this.getNode(), 'Failed to fetch current calc metadata for validation', {
-										itemIndex: i,
+								if (!metadata) {
+									console.log('💾 Cache miss in enhanced mode - fetching metadata for articleId:', articleId);
+									const credentials = await this.getCredentials('calcsLiveApi');
+									const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+									
+									const validateResponse = await this.helpers.httpRequest({
+										method: 'GET',
+										url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
 									});
+									
+									if (validateResponse.success && validateResponse.metadata) {
+										metadata = validateResponse.metadata;
+										metadataCache[articleId] = metadata;
+										console.log('💾 Cached metadata in enhanced mode for:', articleId);
+									} else {
+										throw new NodeOperationError(this.getNode(), 'Failed to fetch current calc metadata for validation', {
+											itemIndex: i,
+										});
+									}
+								} else {
+									console.log('⚡ Cache hit in enhanced mode - using cached metadata for:', articleId);
 								}
 								
 								// Build inputs object from fixedCollection with validation
@@ -694,7 +759,7 @@ export class CalcsLive implements INodeType {
 											symbol = pqInfo.symbol;
 											
 											// Validate that this symbol exists in current calc
-											const allCurrentPQs = [...(validateResponse.metadata.inputPQs || []), ...(validateResponse.metadata.outputPQs || [])];
+											const allCurrentPQs = [...(metadata.inputPQs || []), ...(metadata.outputPQs || [])];
 											const currentPQData = allCurrentPQs.find((pq: any) => pq.symbol === symbol);
 											
 											if (currentPQData) {
@@ -725,7 +790,7 @@ export class CalcsLive implements INodeType {
 											}
 										} catch (error) {
 											// symbol is just a plain string, validate it exists in current calc
-											const allCurrentPQs = [...(validateResponse.metadata.inputPQs || []), ...(validateResponse.metadata.outputPQs || [])];
+											const allCurrentPQs = [...(metadata.inputPQs || []), ...(metadata.outputPQs || [])];
 											const currentPQData = allCurrentPQs.find((pq: any) => pq.symbol === symbol);
 											
 											if (currentPQData) {

@@ -42,7 +42,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/CalcsLiveApi.credentials.js"
+      "dist/credentials/CalculationApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/CalcsLive/CalcsLive.node.js"
