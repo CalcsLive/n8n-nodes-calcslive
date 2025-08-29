@@ -22,13 +22,28 @@ export async function fetchArticleMetadata(
 	try {
 		const credentials = await context.getCredentials('calcsLiveApi');
 		const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+		const requestUrl = `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
+		
+		console.log('📤 Making API request to:', requestUrl);
+		console.log('📤 Request headers:', {
+			'Authorization': `Bearer ${String(credentials.apiKey).substring(0, 10)}...`,
+			'X-CalcsLive-Source': 'n8n-node',
+			'User-Agent': 'n8n-calcslive-node/1.0.0',
+		});
 		
 		const response = await context.helpers.httpRequest({
 			method: 'GET',
-			url: `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`,
+			url: requestUrl,
+			headers: {
+				'Authorization': `Bearer ${credentials.apiKey}`,
+				'X-CalcsLive-Source': 'n8n-node',
+				'User-Agent': 'n8n-calcslive-node/1.0.0',
+			},
 		});
 		
-		console.log('🌐 API Response received for:', articleId);
+		console.log('🌐 Raw API Response received for:', articleId);
+		console.log('📥 Full response structure:');
+		console.log(JSON.stringify(response, null, 2));
 		
 		if (response.success && response.metadata) {
 			const metadata: ArticleMetadata = response.metadata;

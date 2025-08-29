@@ -9,8 +9,8 @@ import {
 } from 'n8n-workflow';
 
 // Import our modular helpers
-import { getInputPQs, getOutputPQs, getUnitsForSymbol } from './helpers/optionsLoaders';
-import { clearCache } from './helpers/metadataCache';
+import { getInputPQs, getOutputPQs } from './helpers/optionsLoaders';
+import { clearCache, getCachedMetadata } from './helpers/metadataCache';
 
 export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {
@@ -194,13 +194,10 @@ export class CalcsLive implements INodeType {
 							{
 								displayName: 'Unit',
 								name: 'unit',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getUnitsForSymbol',
-									loadOptionsDependsOn: ['articleId', 'symbol'],
-								},
+								type: 'string',
 								default: '',
-								description: 'Select the unit for this quantity (leave empty to use calc default)',
+								placeholder: 'km, m, ft, etc.',
+								description: 'Enter the unit for this quantity (leave empty to use calc default)',
 							},
 						],
 					},
@@ -244,13 +241,10 @@ export class CalcsLive implements INodeType {
 							{
 								displayName: 'Unit',
 								name: 'unit',
-								type: 'options',
-								typeOptions: {
-									loadOptionsMethod: 'getUnitsForSymbol',
-									loadOptionsDependsOn: ['articleId', 'symbol'],
-								},
+								type: 'string',
 								default: '',
-								description: 'Select the desired output unit',
+								placeholder: 'km/h, m/s, mph, etc.',
+								description: 'Enter the desired output unit (leave empty to use calc default)',
 							},
 						],
 					},
@@ -263,8 +257,7 @@ export class CalcsLive implements INodeType {
 	methods = {
 		loadOptions: {
 			getInputPQs,
-			getOutputPQs, 
-			getUnitsForSymbol,
+			getOutputPQs,
 		},
 	};
 
@@ -289,7 +282,7 @@ export class CalcsLive implements INodeType {
 				// Build request based on configuration mode
 				let requestBody: any = {
 					articleId,
-					apiKey: credentials.apiKey,
+					apiKey: credentials.apiKey, // Keep in body for backward compatibility
 				};
 				
 				if (configMode === 'legacy') {
@@ -311,13 +304,46 @@ export class CalcsLive implements INodeType {
 					requestBody.inputs = {};
 					requestBody.outputs = {};
 					
-					// Process input PQs
+					// Process input PQs with execution-time auto-population
 					if (inputPQs.pq && Array.isArray(inputPQs.pq)) {
 						inputPQs.pq.forEach((pq: any) => {
 							if (pq.symbol && pq.symbol.trim() !== '') {
+								// Get article defaults from cached metadata
+								let value = pq.value;
+								let unit = pq.unit;
+								
+								// Auto-populate empty fields with article defaults
+								if (!value || value === '' || value === null || value === undefined) {
+									const metadata = getCachedMetadata(articleId);
+									const defaultPq = metadata?.inputPQs?.find((defaultPq: any) => defaultPq.symbol === pq.symbol);
+									if (defaultPq && typeof defaultPq.faceValue === 'number') {
+										value = defaultPq.faceValue;
+										console.log(`🔧 Auto-populated value for ${pq.symbol}: ${value} (from article default)`);
+									}
+								}
+								
+								if (!unit || unit === '') {
+									const metadata = getCachedMetadata(articleId);
+									const defaultPq = metadata?.inputPQs?.find((defaultPq: any) => defaultPq.symbol === pq.symbol);
+									if (defaultPq && defaultPq.unit) {
+										unit = defaultPq.unit;
+										console.log(`🔧 Auto-populated unit for ${pq.symbol}: ${unit} (from article default)`);
+									}
+								} else {
+									// Validate user-provided unit
+									const metadata = getCachedMetadata(articleId);
+									const defaultPq = metadata?.inputPQs?.find((defaultPq: any) => defaultPq.symbol === pq.symbol);
+									if (defaultPq && metadata?.availableUnits?.[defaultPq.categoryId]) {
+										const validUnits = metadata.availableUnits[defaultPq.categoryId];
+										if (!validUnits.includes(unit)) {
+											console.log(`⚠️  Warning: "${unit}" may not be valid for ${pq.symbol}. Valid units: ${validUnits.join(', ')}`);
+										}
+									}
+								}
+								
 								requestBody.inputs[pq.symbol] = {
-									value: pq.value,
-									unit: pq.unit || undefined,
+									value: value,
+									unit: unit || undefined,
 								};
 							}
 						});
@@ -342,10 +368,15 @@ export class CalcsLive implements INodeType {
 				
 				console.log('📤 API Request:', JSON.stringify(requestBody, null, 2));
 				
-				// Make API call
+				// Make API call with enhanced security headers
 				const response = await this.helpers.httpRequest({
 					method: 'POST',
 					url: `${baseUrl}/api/n8n/v1/calculate`,
+					headers: {
+						'Authorization': `Bearer ${credentials.apiKey}`,
+						'X-CalcsLive-Source': 'n8n-node',
+						'User-Agent': 'n8n-calcslive-node/1.0.0',
+					},
 					body: requestBody,
 					json: true,
 				});
