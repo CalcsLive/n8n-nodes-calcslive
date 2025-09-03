@@ -1,200 +1,438 @@
 # n8n-nodes-calcslive
 
-A custom n8n node for integrating with the CalcsLive calculation API. This node allows you to perform physics calculations with unit conversions directly within your n8n workflows.
+![CalcsLive Logo](https://www.calcs.live/favicon.ico) **Execute unit-aware engineering calculations directly in your n8n workflows**
 
-## Installation
+Transform your automation with physics-powered calculations featuring automatic unit conversions, 64+ unit categories, and mathematical expressions that actually understand engineering units.
 
-### Community Node Installation (Recommended)
+[![npm version](https://badge.fury.io/js/n8n-nodes-calcslive.svg)](https://www.npmjs.com/package/n8n-nodes-calcslive)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> **🚧 MVP Release**: This is our initial release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcs.live
+
+## 🚀 Quick Start
+
+### Installation
 1. Open your n8n instance
-2. Go to **Settings** > **Community Nodes**
-3. Enter `n8n-nodes-calcslive` in the npm package name field
-4. Click **Install**
+2. Go to **Settings** → **Community Nodes** 
+3. Enter `n8n-nodes-calcslive` and click **Install**
+4. Create your **CalcsLive API** credentials with your API key
 
-### Manual Installation (Development)
-```bash
-# Clone or download this repository
-git clone https://github.com/calcslive/n8n-nodes-calcslive.git
-cd n8n-nodes-calcslive
+### First Calculation (5 minutes)
+1. **Create a simple calculation** at [CalcsLive](https://www.calcs.live) and note the Article ID
+2. Add the **CalcsLive Calculator** node to your workflow
+3. Enter your Article ID and choose **Enhanced Mode** for guided setup
+4. Add input values and watch the unit-aware magic happen! 🎯
 
-# Install dependencies
-npm install
+**💡 Pro Tip**: Start with a simple unit conversion calc (see example below) to experience the power!
 
-# Build the node
-npm run build
+## ✨ Why CalcsLive? The Plug-and-Play Revolution!
 
-# Link for local development
-npm link
+### **🔌 Plug-and-Play Power**
+CalcsLive transforms n8n workflows with **zero-configuration unit awareness**. Simply plug the CalcsLive node between any two nodes and instantly bridge different unit systems, calculations, or data formats.
 
-# In your n8n installation directory (C:\Users\<USERNAME>\.n8n\custom)
-npm link n8n-nodes-calcslive
+### **🚀 n8n Expressions + Unit Awareness = Game Changer**
+When you use n8n expressions (`{{$json.data}}`) with CalcsLive, your workflow data becomes **unit-aware**:
+- **Dynamic Values**: `{{$json.temperature}}` → Automatic °C to °F conversion
+- **Smart Bridging**: Any node → CalcsLive → Any node with proper units  
+- **Zero Code**: No manual conversion formulas or complex calculations needed
 
-# Restart n8n
-n8n start
+### **Before vs After Comparison**
+```javascript
+// ❌ Before: Manual unit conversion nightmare
+const distanceKm = 150;
+const timeHours = 2;  
+const speedKmH = distanceKm / timeHours; // = 75 km/h
+// Need mph? Write more conversion code...
+const speedMph = speedKmH * 0.621371; // = 46.6 mph
 ```
 
-## Configuration
-
-### API Credentials
-Before using the CalcsLive Calculator node, you need to set up your API credentials:
-
-1. In n8n, go to **Credentials** and create a new **CalcsLive API** credential
-2. Enter your CalcsLive API key (obtain from your CalcsLive account)
-3. Optionally, modify the base URL if using a custom instance
-
-## Usage
-
-### Basic Example
-The CalcsLive Calculator node requires three main inputs:
-
-1. **Article ID**: The identifier of the calculation formula (e.g., `3LYPD4C96-34U`)
-2. **Inputs**: JSON object with input values and units
-3. **Outputs**: JSON object specifying desired output units (optional)
-
-#### Example: Speed Calculation
 ```json
+// ✅ With CalcsLive: Plug-and-play unit-aware workflows
 {
-  "articleId": "3LYPD4C96-34U",
   "inputs": {
-    "x": { "value": 150, "unit": "km" },
-    "y": { "value": 2, "unit": "h" }
+    "D": { "value": "{{$json.distance}}", "unit": "km" },
+    "t": { "value": "{{$json.time}}", "unit": "h" }
   },
   "outputs": {
-    "s": { "unit": "km/h" }
+    "s": { "unit": "mph" }
+  }
+}
+// Result: Perfect unit conversion with n8n expression data! 🎯
+```
+
+## 🎯 Real-World Use Cases
+
+### **🔌 Plug-and-Play Benefits for n8n Ecosystem**
+
+**🎯 Instant Unit Bridging**: Drop CalcsLive between any nodes to bridge unit mismatches
+- Google Sheets (metric) → CalcsLive → US Database (imperial) ✨
+- IoT Sensors (various units) → CalcsLive → Normalized Dashboard 📊
+- API Response (°C) → CalcsLive → Email Alert (°F) 📧
+
+**🚀 Zero Configuration**: No complex setup, just plug and play
+- Create calc once → Use everywhere in your workflows
+- n8n expressions work seamlessly with unit awareness
+- Dynamic data flows get automatic unit intelligence
+
+**⚡ Workflow Superpowers**: Transform ordinary workflows into unit-aware automation
+- **Before**: 5 nodes + custom code for unit conversion
+- **After**: 1 CalcsLive node with automatic unit handling
+- **Result**: Cleaner workflows, fewer errors, more reliability
+
+## 🔧 Configuration Modes
+
+### **Enhanced Mode** (Recommended) 🌟
+User-friendly interface with:
+- **Dropdown Selectors**: Choose input/output quantities from article
+- **Auto-Discovery**: Automatically loads available parameters
+- **Default Values**: Pre-populated with article defaults
+- **Unit Validation**: Visual feedback for valid units
+- **Smart Tooltips**: Contextual help for each parameter
+
+### **Legacy Mode** (Advanced Users)
+Direct JSON input for:
+- **Power Users**: Full control over request structure  
+- **Custom Integrations**: Programmatic parameter generation
+- **Dynamic Workflows**: Expression-based parameter building
+
+## 📋 Step-by-Step Guide
+
+### **Step 1: Get Your API Key**
+1. Visit [CalcsLive](https://www.calcs.live) and create an account
+2. Go to **Account** → **API Keys** 
+3. Generate a new API key for n8n integration
+4. Note your subscription tier limits (Free: 100 calls/month after trial)
+
+### **Step 2: Configure Credentials**
+1. In n8n: **Credentials** → **Create New** → **CalcsLive API**
+2. Enter your API key from Step 1
+3. Base URL: `https://www.calcs.live` (default)
+
+### **Step 3: Create Your Calculation Articles**
+**Security Note**: CalcsLive's n8n integration API is designed so users can only use their own public calculation articles in the CalcsLive node. You can create your own articles and use them in your node easily following the examples.
+
+1. Visit [CalcsLive](https://www.calcs.live) and create your calculation
+2. Define your Physical Quantities (PQs) and mathematical relationships  
+3. Save your calculation and **find the Article ID in the URL**
+   - Example URL: `https://www.calcs.live/editor/3M5NVUCGW-3TA`
+   - Article ID: `3M5NVUCGW-3TA` (the part after `/editor/`)
+
+**Demo Article IDs** (for reference only - create your own for actual use):
+- `3M5NVUCGW-3TA` - Speed Distance Time Calculator (demo)
+- `3VQ7Z8X2P-4B9` - Power Calculation (demo)
+- `2H8M3K5N-7C1` - Material Stress Analysis (demo)
+
+### **Step 4: Configure Your Node**
+
+#### **Enhanced Mode Setup:**
+1. **Article ID**: Enter your chosen calculation ID
+2. **Input Physical Quantities**: Click "Add Input PQ"
+   - Select parameter from dropdown
+   - Enter value (or use expression)
+   - Specify unit (optional - uses article default)
+3. **Output Physical Quantities**: Click "Add Output PQ" 
+   - Select desired output parameter
+   - Specify preferred unit for results
+
+#### **Legacy Mode Setup:**
+```json
+{
+  "articleId": "3M5NVUCGW-3TA",
+  "inputs": {
+    "D": { "value": 150, "unit": "km" },
+    "t": { "value": 2, "unit": "h" }
+  },
+  "outputs": {
+    "s": { "unit": "mph" }
   }
 }
 ```
 
-### Workflow Examples
+## 💡 Workflow Examples
 
-#### 1. Simple Calculation
+### **Example 1: Simple Unit Conversion (Perfect for Getting Started!)**
+**Step 1**: Create a calc in CalcsLive frontend with 2 PQs:
+- `PQ0 = 2 m` (input quantity) 
+- `PQ1 = PQ0 cm` (output - just unit conversion)
+
+**Step 2**: Use in n8n workflow as a plug-and-play unit converter:
 ```
-Manual Trigger → CalcsLive Calculator → Set Node
+Data Source → CalcsLive Calculator → Next Node
 ```
-
-#### 2. Batch Processing from Spreadsheet
-```
-Google Sheets Trigger → CalcsLive Calculator → Google Sheets Update
-```
-
-#### 3. API Integration
-```
-Webhook → CalcsLive Calculator → HTTP Request → Database
-```
-
-## Node Configuration
-
-### Input Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| Article ID | String | Yes | The calculation article identifier from CalcsLive |
-| Inputs | JSON | Yes | Physical quantities with values and units |
-| Outputs | JSON | No | Desired output units (uses defaults if omitted) |
-
-### Output Data
-
-The node returns a structured JSON object containing:
-
 ```json
 {
-  "articleId": "3LYPD4C96-34U",
-  "status": "success",
+  "articleId": "YOUR-ARTICLE-ID",
   "inputs": {
-    "x": {
-      "symbol": "x",
+    "PQ0": { "value": "{{$json.length_meters}}", "unit": "m" }
+  },
+  "outputs": {
+    "PQ1": { "unit": "cm" }
+  }
+}
+```
+**🎯 Result**: Automatic m → cm conversion! The CalcsLive node becomes a **unit-aware bridge** between any two nodes in your workflow.
+
+### **Example 2: IoT Sensor Processing with n8n Expressions**
+```
+IoT Sensor → CalcsLive Calculator → Database
+```
+**🚀 Game-Changer**: When you use n8n expressions (like `{{$json.temperature}}`) with CalcsLive, your data gets **unit-awareness superpowers**!
+```json
+{
+  "inputs": {
+    "temp_c": { "value": "{{$json.temperature}}", "unit": "°C" }
+  },
+  "outputs": {
+    "temp_f": { "unit": "°F" }
+  }
+}
+```
+
+### **Example 3: Batch Spreadsheet Processing**
+```
+Google Sheets → CalcsLive Calculator → Email Report
+```
+**Use Case**: Process engineering data with n8n expressions passing spreadsheet values directly to unit-aware calculations
+
+### **Example 4: Real-time Monitoring Dashboard**
+```
+Webhook → CalcsLive Calculator → InfluxDB → Grafana
+```
+**Use Case**: Monitor manufacturing equipment with unit-normalized metrics using dynamic n8n expressions
+
+### **Example 5: Compliance Reporting**
+```
+Database Query → CalcsLive Calculator → PDF Generator → Email
+```
+**Use Case**: Generate regulatory reports with region-appropriate units
+
+## 📊 Understanding Node Output
+
+### **Success Response Structure**
+```json
+{
+  "success": true,
+  "articleId": "3M5NVUCGW-3TA",
+  "inputs": {
+    "D": {
+      "symbol": "D",
       "value": 150,
-      "unit": "km",
+      "unit": "km", 
       "baseValue": 150000,
-      "baseUnit": "m"
-    },
-    "y": {
-      "symbol": "y", 
-      "value": 2,
-      "unit": "h",
-      "baseValue": 7200,
-      "baseUnit": "s"
+      "baseUnit": "m",
+      "description": "Distance"
     }
   },
   "outputs": {
     "s": {
       "symbol": "s",
-      "value": 75,
-      "unit": "km/h",
-      "baseValue": 20.833,
-      "baseUnit": "m/s",
-      "expression": "x/y"
+      "value": 46.6,
+      "unit": "mph",
+      "baseValue": 20.83,
+      "baseUnit": "m/s", 
+      "expression": "D/t",
+      "description": "Speed"
     }
   },
-  "timestamp": "2025-01-09T10:15:00.000Z"
+  "_metadata": {
+    "executionTime": "2025-09-03T17:30:00.000Z",
+    "processingTimeMs": 45
+  }
 }
 ```
 
-## Error Handling
+### **Key Output Fields**
+- **`value`** & **`unit`**: Your requested result with specified units
+- **`baseValue`** & **`baseUnit`**: SI base units for standardization
+- **`expression`**: Mathematical formula used for calculation
+- **`description`**: Human-readable parameter description
 
-The node provides clear error messages for common issues:
+## 🚨 Error Handling & Troubleshooting
 
-- **Invalid API Key (401)**: Check your CalcsLive API credentials
-- **Article Not Found (404)**: Verify the article ID exists and is accessible
-- **Bad Request (400)**: Check input format and units
-- **Rate Limit (429)**: Wait before making more requests
-- **Server Errors (5xx)**: CalcsLive service issues
+### **Common Error Messages**
 
-## Development
+| Error Code | Message | Solution |
+|------------|---------|----------|
+| **401** | Invalid API Key | Check your CalcsLive API credentials |
+| **404** | Article Not Found | Verify article ID exists and is public |
+| **400** | Invalid Input Format | Check JSON structure and unit syntax |
+| **429** | Rate Limit Exceeded | Wait or upgrade subscription tier |
+| **500** | Server Error | Temporary CalcsLive service issue |
 
-### Scripts
-```bash
-# Development mode (watch for changes)
-npm run dev
+### **Best Practices**
+- **Cache Article Metadata**: Use Set nodes to avoid repeated validation calls  
+- **Error Boundaries**: Add error handling for calculation failures
+- **Unit Validation**: Test unit compatibility before production deployment
+- **Rate Limiting**: Monitor API usage in high-frequency workflows
 
-# Build the project
-npm run build
+### **Debugging Tips**
+1. **Enable Node Debugging**: Check console logs for detailed request/response info
+2. **Test Articles**: Use demo article IDs for initial testing
+3. **Unit Checking**: Verify unit spelling - case sensitive! (`km` not `KM`)
+4. **Expression Validation**: Check that symbols match article definitions
 
-# Run linting
-npm run lint
+## 🔧 Advanced Configuration
 
-# Format code
-npm run format
+### **Dynamic Parameters with Expressions**
+```json
+{
+  "inputs": {
+    "pressure": { 
+      "value": "{{$json.sensor_pressure}}", 
+      "unit": "{{$json.sensor_unit || 'Pa'}}" 
+    }
+  }
+}
 ```
 
-### Testing
-To test the node locally:
+### **Conditional Output Units**
+```json
+{
+  "outputs": {
+    "temperature": { 
+      "unit": "{{$json.region === 'US' ? '°F' : '°C'}}" 
+    }
+  }
+}
+```
 
-1. Build the project: `npm run build`
-2. Link the node: `npm link`
+### **Batch Processing Pattern**
+```javascript
+// Split incoming array → CalcsLive Calculator → Merge results
+```
 
-Setup or use n8n local installation:
-Ref: [Perplexity Guide](https://www.perplexity.ai/search/on-a-windows-pc-where-is-local-0AB16oB3RHKjwGg2._fsdA)
-```text
-md C:\Users\<USERNAME>\.n8n\custom
-cd C:\Users\<USERNAME>\.n8n\custom
-npm init
+## 🌍 Units & Categories
+
+CalcsLive supports **64+ unit categories** with **540+ units**! 
+
+📖 **Complete Reference**: Visit [CalcsLive Units Reference](https://www.calcs.live/help/units-reference) for the interactive browser with search functionality and complete unit listings.
+
+## 📚 API Reference
+
+### **Node Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `articleId` | string | ✅ | CalcsLive calculation article identifier |
+| `configMode` | enum | ✅ | "enhanced" or "legacy" configuration mode |
+| `inputPQs` | array | 📋 | Enhanced mode: Physical quantity inputs |
+| `outputPQs` | array | ⚪ | Enhanced mode: Desired outputs with units |
+| `inputs` | JSON | 📋 | Legacy mode: Direct JSON input structure |  
+| `outputs` | JSON | ⚪ | Legacy mode: Direct JSON output specification |
+
+**Legend**: ✅ Required, 📋 Required in respective mode, ⚪ Optional
+
+### **Input PQ Structure (Enhanced Mode)**
+```json
+{
+  "symbol": "D",           // Parameter symbol from article
+  "value": 150,           // Numeric value
+  "unit": "km"            // Unit specification (optional)
+}
+```
+
+### **Output PQ Structure (Enhanced Mode)**
+```json
+{
+  "symbol": "s",          // Output parameter symbol  
+  "unit": "mph"           // Desired output unit
+}
+```
+
+## 🔗 Integration Examples
+
+### **Google Sheets Integration**
+```
+Google Sheets Trigger → CalcsLive Calculator → Google Sheets Update
+```
+Process engineering data with automatic unit normalization.
+
+### **Discord/Slack Bot**
+```
+Discord Trigger → CalcsLive Calculator → Discord Response
+```
+Create calculation bots for engineering teams.
+
+### **Database ETL Pipeline** 
+```
+Database → CalcsLive Calculator → Transform → Data Warehouse
+```
+Standardize units across diverse data sources.
+
+### **Monitoring & Alerting**
+```
+Sensor API → CalcsLive Calculator → Condition → Email Alert
+```
+Calculate safety thresholds with proper unit handling.
+
+## 📈 Subscription Tiers & Limits
+
+| Tier | API Calls/Month | Unit Categories | Best For |
+|------|-----------------|-----------------|-----------|
+| **Free** | 100 (after trial) | 25 essential | Testing, demos |
+| **Basic** | 200 | 25 essential | Small workflows | 
+| **Premium** | 1,800 | All 64+ categories | Production systems |
+| **Enterprise** | Unlimited | All categories | Mission-critical |
+
+**Note**: Free tier includes 30-day unlimited trial for testing.
+
+## 🆘 Support & Community
+
+- **📖 Documentation**: [CalcsLive Docs](https://www.calcs.live/docs)
+- **🔧 API Reference**: [CalcsLive API Docs](https://www.calcs.live/docs/api) 
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/calcslive/n8n-nodes-calcslive/issues)
+- **💬 Community**: [n8n Community Forum](https://community.n8n.io)
+- **📧 Direct Support**: don.wen@calcs.live
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get involved:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### **Development Setup**
+```bash
+git clone https://github.com/calcslive/n8n-nodes-calcslive.git
+cd n8n-nodes-calcslive
+npm install
+npm run build
+npm link
+
+# In your n8n directory
 npm link n8n-nodes-calcslive
 n8n start
 ```
 
-## Support
+## 📋 Version History
 
-- **CalcsLive Documentation**: https://www.calcs.live/docs
-- **CalcsLive API Documentation**: https://www.calcs.live/docs/api
-- **Issues**: Report bugs and feature requests in the repository issues
+### **0.1.0** - MVP Release
+- ✅ Enhanced and Legacy configuration modes
+- ✅ Automatic unit conversion system  
+- ✅ Comprehensive error handling
+- ✅ API key authentication
+- ✅ Input/output parameter discovery
+- ✅ Debug logging for troubleshooting
 
-## License
+### **Roadmap**
+- **0.2.0**: Batch processing optimizations
+- **0.3.0**: Cached metadata for improved performance  
+- **0.4.0**: Visual calculation builder interface
+- **1.0.0**: Production release with full test coverage
 
-MIT License - see LICENSE file for details.
+## 📜 License
 
-## Contributing
+MIT License - see [LICENSE](LICENSE) file for details.
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## 🌟 About CalcsLive
 
-## Version History
+CalcsLive transforms how engineers and technical professionals handle calculations by embedding unit-aware mathematics directly into documents and workflows. Founded on the principle that calculations should be as easy as writing text, CalcsLive bridges the gap between mathematical rigor and practical usability.
 
-### 1.0.0
-- Initial release
-- Basic calculation functionality
-- API key authentication
-- Error handling for common scenarios
-- Support for custom output units
+**Visit [CalcsLive](https://www.calcs.live) to explore the full platform!**
+
+---
+
+*Made with ❤️ by the CalcsLive team. Empowering engineers through intelligent calculations.*

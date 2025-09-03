@@ -1,22 +1,20 @@
 import {
 	IExecuteFunctions,
-	ILoadOptionsFunctions,
 	INodeExecutionData,
-	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
-	NodeConnectionType,
+	NodeOperationError,
 } from 'n8n-workflow';
 
 // Import our modular helpers
 import { getInputPQs, getOutputPQs } from './helpers/optionsLoaders';
-import { clearCache, getCachedMetadata } from './helpers/metadataCache';
+import { getCachedMetadata } from './helpers/metadataCache';
 
 export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'CalcsLive Calculator',
 		name: 'calcsLive',
-		icon: 'file:e3d-logo2.png',
+		icon: 'file:calcslive.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: 'Article: {{$parameter["articleId"]}}',
@@ -24,8 +22,8 @@ export class CalcsLive implements INodeType {
 		defaults: {
 			name: 'CalcsLive Calculator',
 		},
-		inputs: [{ displayName: '', type: NodeConnectionType.Main }],
-		outputs: [{ displayName: '', type: NodeConnectionType.Main }],
+		inputs: ['main'] as any,
+		outputs: ['main'] as any,
 		credentials: [
 			{
 				name: 'calcsLiveApi',
@@ -88,7 +86,7 @@ export class CalcsLive implements INodeType {
 				},
 				default: '3M5NVUCGW-3TA',
 				placeholder: '3M5NVUCGW-3TA',
-				description: 'CalcsLive article ID or short ID. Example: 3M5NVUCGW-3TA (Speed Distance Time Calculator)',
+				description: 'CalcsLive article ID or short ID. Example: 3M5NVUCGW-3TA (Speed Distance Time Calculator).',
 			},
 
 			// Configuration mode selection
@@ -139,7 +137,7 @@ export class CalcsLive implements INodeType {
 				displayName: 'Outputs (Optional)',
 				name: 'outputs',
 				type: 'json',
-				required: false,
+
 				displayOptions: {
 					show: {
 						operation: ['execute'],
@@ -174,7 +172,7 @@ export class CalcsLive implements INodeType {
 						displayName: 'Physical Quantity',
 						values: [
 							{
-								displayName: 'Symbol',
+								displayName: 'Symbol Name or ID',
 								name: 'symbol',
 								type: 'options',
 								typeOptions: {
@@ -182,7 +180,7 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId'],
 								},
 								default: '',
-								description: 'Select the input physical quantity symbol',
+								description: 'Select the input physical quantity symbol. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 							},
 							{
 								displayName: 'Value',
@@ -202,7 +200,7 @@ export class CalcsLive implements INodeType {
 						],
 					},
 				],
-				description: '⚠️ IMPORTANT: When you change Article ID, remove all old PQ rows and add new ones.',
+				description: '⚠️ IMPORTANT: When you change Article ID, remove all old PQ rows and add new ones',
 			},
 
 			// Enhanced mode - Output PQ configuration  
@@ -228,7 +226,7 @@ export class CalcsLive implements INodeType {
 						displayName: 'Physical Quantity',
 						values: [
 							{
-								displayName: 'Symbol',
+								displayName: 'Symbol Name or ID',
 								name: 'symbol',
 								type: 'options',
 								typeOptions: {
@@ -236,7 +234,7 @@ export class CalcsLive implements INodeType {
 									loadOptionsDependsOn: ['articleId'],
 								},
 								default: '',
-								description: 'Select the output physical quantity symbol',
+								description: 'Select the output physical quantity symbol. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 							},
 							{
 								displayName: 'Unit',
@@ -249,7 +247,7 @@ export class CalcsLive implements INodeType {
 						],
 					},
 				],
-				description: '⚠️ IMPORTANT: When you change Article ID, remove all old PQ rows and add new ones.',
+				description: '⚠️ IMPORTANT: When you change Article ID, remove all old PQ rows and add new ones',
 			},
 		],
 	};
@@ -280,7 +278,7 @@ export class CalcsLive implements INodeType {
 				const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
 				
 				// Build request based on configuration mode
-				let requestBody: any = {
+				const requestBody: any = {
 					articleId,
 					apiKey: credentials.apiKey, // Keep in body for backward compatibility
 				};
@@ -395,12 +393,12 @@ export class CalcsLive implements INodeType {
 						},
 					});
 				} else {
-					throw new Error(`Calculation failed: ${response.error || 'Unknown error'}`);
+					throw new NodeOperationError(this.getNode(), `Calculation failed: ${response.error || 'Unknown error'}`);
 				}
 				
 			} catch (error: any) {
 				console.log('❌ Execution error:', error.message);
-				throw error;
+				throw new NodeOperationError(this.getNode(), error.message);
 			}
 		}
 		

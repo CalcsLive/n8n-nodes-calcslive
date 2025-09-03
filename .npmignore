@@ -1,0 +1,74 @@
+# Source files - only dist should be published
+nodes/
+credentials/
+*.ts
+*.ts.backup
+*.ts.md
+tsconfig.json
+gulpfile.js
+
+# Development and documentation
+.e3d/
+.obsidian/
+temp/
+refs/
+workflows/
+UI/
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+
+# Test files
+test-*.js
+*.test.*
+
+# Build artifacts
+node_modules/
+.eslintrc.js
+.eslintrc.*
+.prettierrc
+.prettierignore
+
+# Git and versioning
+.git/
+.gitignore
+.gitattributes
+
+# Logs and debug
+*.log
+Log.md
+logs/
+
+# IDE and OS
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Development environment
+.env
+.env.local
+.env.production
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Development prompts and specs
+*PROMPT.md
+SPEC-*.md
+NEXT-CHAT-PROMPT.md

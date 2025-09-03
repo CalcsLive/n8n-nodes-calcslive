@@ -1,6 +1,6 @@
 import { ILoadOptionsFunctions, INodePropertyOptions } from 'n8n-workflow';
-import { fetchArticleMetadata, findPQBySymbol } from './apiClient';
-import { getUnitsForSymbol as getCachedUnitsForSymbol, getCachedMetadata } from './metadataCache';
+import { fetchArticleMetadata } from './apiClient';
+import { getCachedMetadata } from './metadataCache';
 
 /**
  * Option loaders for CalcsLive n8n node
@@ -13,14 +13,14 @@ export async function getInputPQs(this: ILoadOptionsFunctions): Promise<INodePro
 	console.log('🆔 getInputPQs called for articleId:', articleId);
 	
 	if (!articleId) {
-		return [{ name: 'Enter Article ID first', value: '' }];
+		return [{ name: 'Enter Article ID First', value: '' }];
 	}
 	
 	try {
 		const metadata = await fetchArticleMetadata(this, articleId);
 		
 		if (!metadata?.inputPQs) {
-			return [{ name: 'No input PQs found', value: '' }];
+			return [{ name: 'No Input PQs Found', value: '' }];
 		}
 		
 		// Return clean symbol names only
@@ -42,14 +42,14 @@ export async function getOutputPQs(this: ILoadOptionsFunctions): Promise<INodePr
 	const articleId = this.getCurrentNodeParameter('articleId') as string;
 	
 	if (!articleId) {
-		return [{ name: 'Enter Article ID first', value: '' }];
+		return [{ name: 'Enter Article ID First', value: '' }];
 	}
 	
 	try {
 		const metadata = await fetchArticleMetadata(this, articleId);
 		
 		if (!metadata?.outputPQs) {
-			return [{ name: 'No output PQs found', value: '' }];
+			return [{ name: 'No Output PQs Found', value: '' }];
 		}
 		
 		const options = metadata.outputPQs.map(pq => ({
@@ -73,7 +73,7 @@ export async function getUnitsForSymbol(this: ILoadOptionsFunctions): Promise<IN
 	console.log('📋 Article ID:', articleId);
 	
 	if (!articleId) {
-		return [{ name: 'Enter Article ID first', value: '' }];
+		return [{ name: 'Enter Article ID First', value: '' }];
 	}
 	
 	try {
@@ -85,7 +85,7 @@ export async function getUnitsForSymbol(this: ILoadOptionsFunctions): Promise<IN
 		const metadata = getCachedMetadata(articleId);
 		
 		if (!metadata?.availableUnits) {
-			return [{ name: 'No units available', value: '' }];
+			return [{ name: 'No Units Available', value: '' }];
 		}
 		
 		const options: INodePropertyOptions[] = [];
