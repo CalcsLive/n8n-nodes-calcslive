@@ -1,0 +1,315 @@
+{
+  "name": "AI Engineering Assistant with CalcsLive",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "engineering-query",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Engineering Query Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "engineering-assistant"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.3
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an engineering calculation assistant. When a user describes an engineering problem, analyze it and determine:\n1. What type of calculation is needed (hydraulic, mechanical, electrical, etc.)\n2. What input parameters are required\n3. What units are likely being used\n4. Return a structured JSON response with calculation_type, article_id, and input_parameters.\n\nAvailable calculations:\n- Speed/Distance/Time: article_id '3M5NVUCGW-3TA'\n- Hydraulic Power: article_id 'HYDRO-POWER-CALC'\n- Pipe Pressure Drop: article_id 'PIPE-PRESSURE'\n- Heat Transfer: article_id 'HEAT-TRANSFER'\n\nExample response:\n{\n  \"calculation_type\": \"speed_distance_time\",\n  \"article_id\": \"3M5NVUCGW-3TA\",\n  \"confidence\": 0.95,\n  \"input_parameters\": {\n    \"D\": {\"value\": 150, \"unit\": \"km\", \"description\": \"Distance traveled\"},\n    \"t\": {\"value\": 2, \"unit\": \"h\", \"description\": \"Time taken\"}\n  },\n  \"expected_outputs\": [\"s\"],\n  \"reasoning\": \"User wants to calculate speed given distance and time\"\n}"
+            },
+            {
+              "role": "user", 
+              "content": "{{ $json.body.query }}"
+            }
+          ]
+        }
+      },
+      "id": "ai-analyzer",
+      "name": "AI Problem Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and prepare CalcsLive inputs\nconst aiResponse = JSON.parse($input.first().json.message.content);\n\n// Extract calculation parameters\nconst articleId = aiResponse.article_id;\nconst inputParams = aiResponse.input_parameters;\nconst confidence = aiResponse.confidence;\n\n// Check confidence threshold\nif (confidence < 0.8) {\n  return {\n    error: 'Low confidence in calculation interpretation',\n    confidence: confidence,\n    reasoning: aiResponse.reasoning,\n    suggested_clarification: 'Please provide more specific details about your calculation needs'\n  };\n}\n\n// Transform input parameters to CalcsLive format\nconst inputPQs = [];\nfor (const [symbol, data] of Object.entries(inputParams)) {\n  inputPQs.push({\n    symbol: symbol,\n    value: data.value,\n    unit: data.unit\n  });\n}\n\n// Prepare output PQs if specified\nconst outputPQs = [];\nif (aiResponse.expected_outputs) {\n  for (const symbol of aiResponse.expected_outputs) {\n    outputPQs.push({\n      symbol: symbol,\n      unit: '' // Let CalcsLive use defaults\n    });\n  }\n}\n\nreturn {\n  articleId: articleId,\n  inputPQs: { pq: inputPQs },\n  outputPQs: { pq: outputPQs },\n  metadata: {\n    calculation_type: aiResponse.calculation_type,\n    confidence: confidence,\n    reasoning: aiResponse.reasoning,\n    original_query: $('Engineering Query Webhook').first().json.body.query\n  }\n};"
+      },
+      "id": "parameter-processor",
+      "name": "Parameter Processor", 
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error_check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "confidence-check",
+      "name": "Confidence Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "resource": "calculation",
+        "operation": "execute",
+        "articleId": "={{ $json.articleId }}",
+        "configMode": "enhanced",
+        "inputPQs": "={{ $json.inputPQs }}",
+        "outputPQs": "={{ $json.outputPQs }}"
+      },
+      "id": "calcslive-calculation",
+      "name": "CalcsLive Calculation",
+      "type": "calcslive",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format calculation results for AI interpretation\nconst calcResult = $input.first().json;\nconst metadata = $('Parameter Processor').first().json.metadata;\n\n// Extract results\nconst results = calcResult.outputs || {};\nconst inputs = calcResult.inputs || {};\n\n// Create human-readable summary\nlet summary = `Calculation completed successfully for: ${metadata.original_query}\\n\\n`;\nsummary += `Calculation Type: ${metadata.calculation_type}\\n`;\nsummary += `Confidence: ${(metadata.confidence * 100).toFixed(1)}%\\n\\n`;\n\n// Input summary\nsummary += 'Inputs used:\\n';\nfor (const [symbol, data] of Object.entries(inputs)) {\n  summary += `- ${symbol}: ${data.value} ${data.unit}\\n`;\n}\n\n// Results summary  \nsummary += '\\nResults:\\n';\nfor (const [symbol, data] of Object.entries(results)) {\n  summary += `- ${symbol}: ${data.value} ${data.unit}\\n`;\n}\n\n// Add calculation context\nsummary += `\\nReasoning: ${metadata.reasoning}\\n`;\n\nreturn {\n  success: true,\n  summary: summary,\n  raw_results: calcResult,\n  metadata: metadata,\n  formatted_results: results\n};"
+      },
+      "id": "result-formatter",
+      "name": "Result Formatter",
+      "type": "n8n-nodes-base.code", 
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an engineering assistant that explains calculation results in plain English. Take the calculation summary and provide:\n1. A clear explanation of what was calculated\n2. Whether the results make engineering sense\n3. Any relevant engineering insights or recommendations\n4. Suggestions for follow-up calculations if applicable\n\nBe conversational but technically accurate."
+            },
+            {
+              "role": "user",
+              "content": "{{ $json.summary }}"
+            }
+          ]
+        }
+      },
+      "id": "ai-explainer",
+      "name": "AI Result Explainer",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format error response\nconst errorData = $input.first().json;\n\nreturn {\n  success: false,\n  error: 'Unable to interpret calculation request',\n  confidence: errorData.confidence,\n  reasoning: errorData.reasoning,\n  suggestion: errorData.suggested_clarification,\n  original_query: $('Engineering Query Webhook').first().json.body.query\n};"
+      },
+      "id": "error-formatter",
+      "name": "Error Formatter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response", 
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log interaction for learning\nconst originalQuery = $('Engineering Query Webhook').first().json.body.query;\nconst timestamp = new Date().toISOString();\n\n// Determine if this was success or error path\nconst isSuccess = $input.first().json.success !== false;\n\nconst logEntry = {\n  timestamp: timestamp,\n  query: originalQuery,\n  success: isSuccess,\n  workflow_execution_id: $executionId\n};\n\nif (isSuccess) {\n  const results = $('Result Formatter').first().json;\n  logEntry.calculation_type = results.metadata.calculation_type;\n  logEntry.confidence = results.metadata.confidence;\n  logEntry.article_id = $('Parameter Processor').first().json.articleId;\n} else {\n  logEntry.error_reason = $input.first().json.error;\n  logEntry.confidence = $input.first().json.confidence;\n}\n\nconsole.log('AI-CalcsLive Integration Log:', JSON.stringify(logEntry, null, 2));\n\nreturn logEntry;"
+      },
+      "id": "analytics-logger",
+      "name": "Analytics Logger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 350]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Engineering Query Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Problem Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Problem Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Parameter Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parameter Processor": {
+      "main": [
+        [
+          {
+            "node": "Confidence Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confidence Check": {
+      "main": [
+        [
+          {
+            "node": "CalcsLive Calculation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CalcsLive Calculation": {
+      "main": [
+        [
+          {
+            "node": "Result Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result Formatter": {
+      "main": [
+        [
+          {
+            "node": "AI Result Explainer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Analytics Logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Result Explainer": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Formatter": {
+      "main": [
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Analytics Logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2025-01-29T23:45:00.000Z",
+  "id": "ai-calcslive-integration",
+  "meta": {
+    "instanceId": "calcslive-n8n-demo"
+  },
+  "name": "AI Engineering Assistant with CalcsLive",
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-29T23:45:00.000Z",
+      "id": "ai-integration",
+      "name": "AI Integration"
+    },
+    {
+      "createdAt": "2025-01-29T23:45:00.000Z", 
+      "id": "calcslive",
+      "name": "CalcsLive"
+    },
+    {
+      "createdAt": "2025-01-29T23:45:00.000Z",
+      "id": "engineering",
+      "name": "Engineering"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-29T23:45:00.000Z",
+  "versionId": "1",
+  "description": "AI-powered engineering assistant that uses CalcsLive for accurate unit-aware calculations. Send natural language queries via webhook and get structured calculation results with explanations."
+}
