@@ -4,7 +4,9 @@
 
  **Plug-and-Play Unit-Aware Multi-Step Calculations to your n8n**
  
-[CalcsLive](https://www.calcs.live) calculations feature unit-awareness and pure symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem. Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
+[CalcsLive](https://www.calcs.live) calculations feature unit-awareness and pure symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem.  
+
+Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
 
 [![npm version](https://badge.fury.io/js/@calcslive%2Fn8n-nodes-calcslive.svg)](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
