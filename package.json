@@ -1,6 +1,6 @@
 {
   "name": "@calcslive/n8n-nodes-calcslive",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Plug-and-play unit conversion and unit-aware multi-step calculations for n8n workflows. Transform your automation with automatic handling of 540+ units across 64+ categories.",
   "keywords": [
     "n8n-community-node-package",
