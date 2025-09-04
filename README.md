@@ -1,10 +1,12 @@
 # n8n-nodes-calcslive
 
-![CalcsLive Logo](https://www.calcs.live/favicon.ico) **Execute unit-aware engineering calculations directly in your n8n workflows**
+<img src="https://www.calcs.live/favicon.ico" alt="CalcsLive Logo" width="90">  
 
-Transform your automation with physics-powered calculations featuring automatic unit conversions, 64+ unit categories, and mathematical expressions that actually understand engineering units.
+ **Plug-and-Play Unit-Aware Multi-Step Calculations to your n8n**
+ 
+[CalcsLive](https://www.calcs.live) calculations feature unit-awareness and pure symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem. Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
 
-[![npm version](https://badge.fury.io/js/n8n-nodes-calcslive.svg)](https://www.npmjs.com/package/n8n-nodes-calcslive)
+[![npm version](https://badge.fury.io/js/@calcslive%2Fn8n-nodes-calcslive.svg)](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **🚧 MVP Release**: This is our initial release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcs.live
@@ -14,7 +16,7 @@ Transform your automation with physics-powered calculations featuring automatic 
 ### Installation
 1. Open your n8n instance
 2. Go to **Settings** → **Community Nodes** 
-3. Enter `n8n-nodes-calcslive` and click **Install**
+3. Enter `@calcslive/n8n-nodes-calcslive` and click **Install**
 4. Create your **CalcsLive API** credentials with your API key
 
 ### First Calculation (5 minutes)
@@ -102,6 +104,8 @@ Direct JSON input for:
 2. Go to **Account** → **API Keys** 
 3. Generate a new API key for n8n integration
 4. Note your subscription tier limits (Free: 100 calls/month after trial)
+
+> **📦 npm Package**: [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive)
 
 ### **Step 2: Configure Credentials**
 1. In n8n: **Credentials** → **Create New** → **CalcsLive API**

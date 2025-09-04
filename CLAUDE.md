@@ -6,7 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains the `n8n-nodes-calcslive` custom n8n node that wraps the CalcsLive calculation API to provide better user experience than raw HTTP Request nodes in n8n workflows.
 
-**Status**: 🟡 **IN DEVELOPMENT - Enhanced Mode Implementation**
+**Status**: 🟢 **PUBLISHED TO NPM - Production Ready**
+- Package: `@calcslive/n8n-nodes-calcslive` v0.1.1
+- NPM: ✅ Published and available for installation
+- GitHub: ✅ Repository available at https://github.com/calcslive/n8n-nodes-calcslive
 - Legacy mode: ✅ Fully functional with manual JSON input/output
 - Enhanced mode: 🟡 FixedCollection UI implemented, needs completion
 - Dynamic PQ loading: ✅ Responds to articleId changes
@@ -167,10 +170,11 @@ n8n-nodes-calcslive/
 This node enables CalcsLive integration with 400+ business tools through n8n's ecosystem, expanding market reach and providing viral growth opportunities through shared workflows.
 
 **Next Steps:**
-1. Publish to npm registry
-2. Submit to n8n community nodes
-3. Create documentation and examples
-4. Marketing and user adoption
+1. ✅ Publish to npm registry - **COMPLETED**
+2. Setup CI/CD pipeline for automated testing and deployment
+3. Submit to n8n community nodes
+4. Create documentation and examples
+5. Marketing and user adoption
 
 ## Claude Response Format
 Please start each of your response with:

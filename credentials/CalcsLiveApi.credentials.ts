@@ -1,4 +1,4 @@
-import { ICredentialType, INodeProperties } from 'n8n-workflow';
+import { ICredentialType, INodeProperties, ICredentialTestRequest } from 'n8n-workflow';
 
 /**
  * Credentials for the CalcsLive API.
@@ -12,7 +12,7 @@ import { ICredentialType, INodeProperties } from 'n8n-workflow';
  * 2. Navigate to Account → API & Integration Settings
  * 3. Create a new API key with 'n8n' service type
  */
-export class CalculationApi implements ICredentialType {
+export class CalcsLiveApi implements ICredentialType {
   name = 'calcsLiveApi';
   displayName = 'CalcsLive API';
   documentationUrl = 'https://www.calcs.live/content/docs/api/n8n-integration';
@@ -40,4 +40,18 @@ export class CalculationApi implements ICredentialType {
       description: 'Your CalcsLive n8n integration API key (format: n8n_[64-char-hex]). Requires Premium or Enterprise subscription. Get yours at Account → API & Integration Settings.',
     },
   ];
+
+  test: ICredentialTestRequest = {
+    request: {
+      baseURL: '={{$credentials.baseUrl}}',
+      url: '/api/n8n/v1/test',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: {
+        apiKey: '={{$credentials.apiKey}}',
+      },
+    },
+  };
 }

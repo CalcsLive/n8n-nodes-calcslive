@@ -1,7 +1,7 @@
 {
-  "name": "n8n-nodes-calcslive",
-  "version": "0.1.0",
-  "description": "Execute unit-aware calculations in your n8n workflows using CalcsLive's powerful physics engine. Supports automatic unit conversions, engineering calculations, and complex mathematical expressions with 64+ unit categories.",
+  "name": "@calcslive/n8n-nodes-calcslive",
+  "version": "0.1.1",
+  "description": "Plug-and-play unit conversion and unit-aware multi-step calculations for n8n workflows. Transform your automation with automatic handling of 540+ units across 64+ categories.",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
@@ -18,14 +18,10 @@
   ],
   "license": "MIT",
   "homepage": "https://www.calcs.live",
-  "author": {
-    "name": "CalcsLive",
-    "email": "don.wen@calcs.live",
-    "url": "https://www.calcs.live"
-  },
+  "author": "CalcsLive <don.wen@calcs.live> (https://www.calcs.live)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/calcslive/n8n-nodes-calcslive.git"
+    "url": "git+https://github.com/calcslive/n8n-nodes-calcslive.git"
   },
   "bugs": {
     "url": "https://github.com/calcslive/n8n-nodes-calcslive/issues"
@@ -60,7 +56,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/CalculationApi.credentials.js"
+      "dist/credentials/CalcsLiveApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/CalcsLive/CalcsLive.node.js"
