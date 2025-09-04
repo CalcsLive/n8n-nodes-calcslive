@@ -145,7 +145,7 @@ export class CalcsLive implements INodeType {
 						configMode: ['legacy'],
 					},
 				},
-				default: '{\n  "s": { "unit": "mph[mile/h]" } \n}',
+				default: '{\n  "s": { "unit": "mph" } \n}',
 				description: 'Specify output units (optional). Leave empty to get all outputs with default units.',
 			},
 
