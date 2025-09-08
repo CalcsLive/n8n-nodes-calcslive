@@ -22,7 +22,7 @@ export async function fetchArticleMetadata(
 	try {
 		const credentials = await context.getCredentials('calcsLiveApi');
 		const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
-		const requestUrl = `${baseUrl}/api/n8n/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
+		const requestUrl = `${baseUrl}/api/n8n/v1/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
 		
 		console.log('📤 Making API request to:', requestUrl);
 		console.log('📤 Request headers:', {
@@ -45,8 +45,17 @@ export async function fetchArticleMetadata(
 		console.log('📥 Full response structure:');
 		console.log(JSON.stringify(response, null, 2));
 		
-		if (response.success && response.metadata) {
-			const metadata: ArticleMetadata = response.metadata;
+		if (response.success && response.data?.article) {
+			// Convert v1 API response to metadata format
+			const apiData = response.data.article;
+			const metadata: ArticleMetadata = {
+				articleId: apiData.articleId,
+				articleTitle: apiData.articleTitle,
+				totalPQs: apiData.totalPQs,
+				inputPQs: apiData.inputPQs,
+				outputPQs: apiData.outputPQs,
+				availableUnits: apiData.availableUnits,
+			};
 			setCachedMetadata(articleId, metadata);
 			return metadata;
 		} else {

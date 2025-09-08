@@ -19,7 +19,7 @@ Specifically for AI integration, it empowers AI agents with calculation accuracy
 1. Open your n8n instance
 2. Go to **Settings** → **Community Nodes** 
 3. Enter `@calcslive/n8n-nodes-calcslive` and click **Install**
-4. Create your **CalcsLive API** credentials with your API key
+4. Create your **CalcsLive API** credentials with your API key for 'n8n Integration'
 
 ### First Calculation (5 minutes)
 1. **Create a simple calculation** at [CalcsLive](https://www.calcs.live) and note the Article ID
@@ -154,6 +154,11 @@ Direct JSON input for:
 }
 ```
 
+#### **Note**
+For input PQs and output PQs in your article, when they are not used in your node, input values and units in the article will be used to perform the calculations for your node.
+
+It is recommended to include all input and out PQs available from the article in your node, to allow flexibility in use for both upstream and downstream nodes.
+
 ## 💡 Workflow Examples
 
 ### **Example 1: Simple Unit Conversion (Perfect for Getting Started!)**
@@ -176,7 +181,7 @@ Data Source → CalcsLive Calculator → Next Node
   }
 }
 ```
-**🎯 Result**: Automatic m → cm conversion! The CalcsLive node becomes a **unit-aware bridge** between any two nodes in your workflow.
+**🎯 Result**: Automatic m → cm conversion! Refer to [Interactive Units Database](https://www.calcs.live/help/units-reference#interactive-units-database) for all units and categories CalcsLive support. The CalcsLive node becomes a **unit-aware bridge** between any two nodes in your workflow.
 
 ### **Example 2: IoT Sensor Processing with n8n Expressions**
 ```
@@ -249,7 +254,6 @@ Database Query → CalcsLive Calculator → PDF Generator → Email
 
 ### **Key Output Fields**
 - **`value`** & **`unit`**: Your requested result with specified units
-- **`baseValue`** & **`baseUnit`**: SI base units for standardization
 - **`expression`**: Mathematical formula used for calculation
 - **`description`**: Human-readable parameter description
 
@@ -331,7 +335,7 @@ CalcsLive supports **64+ unit categories** with **540+ units**!
 ### **Input PQ Structure (Enhanced Mode)**
 ```json
 {
-  "symbol": "D",           // Parameter symbol from article
+  "symbol": "D",          // Parameter symbol from article
   "value": 150,           // Numeric value
   "unit": "km"            // Unit specification (optional)
 }

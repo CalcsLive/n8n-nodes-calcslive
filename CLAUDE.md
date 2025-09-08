@@ -15,6 +15,26 @@ This repository contains the `n8n-nodes-calcslive` custom n8n node that wraps th
 - Dynamic PQ loading: ✅ Responds to articleId changes
 - API integration: ✅ Full error handling and validation
 - Custom PNG icon: ✅ Implemented
+- **API versioning: 🔧 FIXED 2025-09-08** - Critical consistency fix implemented
+
+## Recent Critical Fixes
+
+### 🔧 API Versioning Consistency Fix (2025-09-08)
+**Problem**: The validate endpoint was using non-versioned API (`/api/n8n/validate`) while calculate endpoint was using v1 API (`/api/n8n/v1/calculate`), causing version mismatch errors in n8n workflows.
+
+**Solution**: Updated `nodes/CalcsLive/helpers/apiClient.ts` line 25 to use consistent v1 API versioning:
+```typescript
+// Fixed: Both endpoints now use v1 API consistently
+const requestUrl = `${baseUrl}/api/n8n/v1/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
+```
+
+**Impact**: 
+- ✅ Eliminates API version mismatch errors
+- ✅ Consistent response structure across all CalcsLive endpoints  
+- ✅ Improved reliability for n8n workflow integrations
+- ✅ Better debugging with unified API responses
+
+**See**: `.claude/changelogs/2025-09.md` for complete technical details.
 
 ## Development Commands
 
@@ -66,9 +86,12 @@ n8n-nodes-calcslive/
 
 ## API Integration Details
 
-**Endpoint**: `https://www.calcs.live/api/n8n/calculate` (POST)
+**Calculate Endpoint**: `https://www.calcs.live/api/n8n/v1/calculate` (POST)
+**Validate Endpoint**: `https://www.calcs.live/api/n8n/v1/validate` (GET)
 **Authentication**: API key required
 **Rate Limiting**: 60 requests/minute for n8n endpoints
+
+**🔧 Recent Critical Fix (2025-09-08)**: API versioning consistency issue resolved - both endpoints now use v1 API consistently (see `.claude/changelogs/2025-09.md` for details)
 
 ### Request Format
 ```json
