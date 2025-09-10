@@ -38,6 +38,8 @@
   "scripts": {
     "b": "npm run build",
     "build": "npm run clean && tsc && gulp build:icons",
+    "ver": "npm version patch",
+    "pub": "npm publish",
     "clean": "rimraf dist",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
