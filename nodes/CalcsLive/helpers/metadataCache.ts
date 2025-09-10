@@ -4,6 +4,9 @@
  */
 
 export interface ArticleMetadata {
+	articleId?: string;
+	articleTitle?: string;
+	totalPQs?: number;
 	inputPQs?: Array<{
 		symbol: string;
 		description?: string;
