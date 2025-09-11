@@ -62,6 +62,22 @@ The demo workflow uses these CalcsLive calculations:
 
 🎯 **Result**: Instead of creating separate mass calculations for every shape, you build **modular, reusable calculation components** that combine in endless ways. This is the power of composable engineering in n8n workflows!
 
+### 📥 Import Ready-to-Use Template
+
+Want to try this workflow instantly? Download and import our template:
+
+**[📥 Download Demo Workflow](assets/calcslive-demo-workflow-template.json)** *(Right-click → Save As)*
+
+**Import Instructions:**
+1. In n8n: **Workflows** → **Import from File**  
+2. Upload `calcslive-demo-workflow-template.json`
+3. **Set up credentials** (you'll be prompted):
+   - **CalcsLive API**: Add your API key from [CalcsLive Account](https://www.calcs.live/account)
+   - **Gmail** (optional): Configure for email notifications
+4. **Execute** and watch the unit-aware magic! ✨
+
+The template includes data chaining expressions showing how volume flows from Cylinder calc → Mass calc seamlessly.
+
 ## ✨ Why CalcsLive? The Plug-and-Play Revolution!
 
 ### **🔌 Plug-and-Play Power**

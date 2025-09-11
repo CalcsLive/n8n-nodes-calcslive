@@ -5,14 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.6] - 2025-09-11
+## [0.1.7] - 2025-09-11
 
 ### Added
 - **Demo Workflow Showcase**: Interactive workflow demonstration with visual examples
+- **Workflow Template**: Ready-to-import `calcslive-demo-workflow-template.json` with sanitized credentials
 - **Assets folder**: Clean organization for user-facing images and resources
 - **Composability Documentation**: Advanced explanation of calculation chaining patterns
 - **Live Calculation Links**: Direct links to CalcsLive editor for demo calculations
 - **Architectural Best Practices**: Q&A section explaining modular calculation design
+- **Import Instructions**: Step-by-step workflow import guide in README
 
 ### Changed
 - **Enhanced README.md**: Added demo workflow section with supporting calculation previews
