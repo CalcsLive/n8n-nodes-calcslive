@@ -29,6 +29,39 @@ Specifically for AI integration, it empowers AI agents with calculation accuracy
 
 **💡 Pro Tip**: Start with a simple unit conversion calc (see example below) to experience the power!
 
+## 📸 Demo Workflow
+
+![n8n CalcsLive Demo Workflow](assets/demo-workflow.png)
+
+*Example n8n workflow showing CalcsLive nodes performing unit-aware calculations: speed calculations, cylinder volume, and mass calculations with automatic unit handling.*
+
+### Supporting Calculations
+
+The demo workflow uses these CalcsLive calculations:
+
+| Calculation | Preview | Description |
+|-------------|---------|-------------|
+| **Speed & <br>Cylinder Calculators <br> [(Link)](https://www.calcs.live/editor/3M6UW7CQB-2AP)** | ![Speed Calc](assets/3M6UW7CQB-2AP.png) | Distance/time → speed;<br> Cylinder base diameter, height → Volume & Mass; <br> Unit Conversions <br> (All with unit conversion) |
+| **Mass Calculator<br> [(Link)](https://www.calcs.live/editor/3M6VLSBHB-3HT)** | ![Mass Calc](assets/3M6VLSBHB-3HT.png) | Volume+Density → Mass calculation |
+
+### 🧩 Why Separate Calculations? The Composability Advantage
+
+**Question**: Why create a separate mass calculator when the first calculation already includes mass calculation?
+
+**Answer**: This demonstrates CalcsLive's **composable architecture** - a key design principle that unlocks powerful workflow patterns:
+
+🔗 **Calculation Chaining**: 
+- Calc1 outputs volume → Calc2 uses that volume as input
+- n8n expressions seamlessly bridge: `{{$json.volume_result}}`
+
+♻️ **Reusability at Scale**:
+- One mass calc works with ANY volume calculation
+- Cylinder volume + Mass calc = Cylinder mass
+- Box volume + Mass calc = Box mass  
+- Sphere volume + Mass calc = Sphere mass
+
+🎯 **Result**: Instead of creating separate mass calculations for every shape, you build **modular, reusable calculation components** that combine in endless ways. This is the power of composable engineering in n8n workflows!
+
 ## ✨ Why CalcsLive? The Plug-and-Play Revolution!
 
 ### **🔌 Plug-and-Play Power**

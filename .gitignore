@@ -61,12 +61,14 @@ Thumbs.db
 # Development and personal files
 Log.md
 CLAUDE.md
+.claude/
 .e3d/
 .obsidian/
 temp/
 refs/
 UI/
 workflows/
+.github/
 
 # Documentation drafts and prompts  
 *PROMPT*.md

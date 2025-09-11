@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-09-11
+
+### Added
+- **Demo Workflow Showcase**: Interactive workflow demonstration with visual examples
+- **Assets folder**: Clean organization for user-facing images and resources
+- **Composability Documentation**: Advanced explanation of calculation chaining patterns
+- **Live Calculation Links**: Direct links to CalcsLive editor for demo calculations
+- **Architectural Best Practices**: Q&A section explaining modular calculation design
+
+### Changed
+- **Enhanced README.md**: Added demo workflow section with supporting calculation previews
+- **Improved Documentation**: Better explanation of CalcsLive's composable architecture
+- **Visual Examples**: Table format showcasing speed and mass calculations with live links
+- **Developer Experience**: Cleaner separation of public assets vs development files
+
+### Technical
+- **Build Process**: Fixed TypeScript compilation issues in `ArticleMetadata` interface
+- **Asset Management**: Improved gulpfile.js asset copying for SVG/PNG files
+- **Repository Cleanup**: Enhanced .gitignore to exclude development folders (.claude/, UI/, .github/)
+
 ## [0.1.5] - 2025-09-08
 
 ### Fixed
