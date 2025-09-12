@@ -8,9 +8,6 @@
 
 Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
 
-[![npm version](https://badge.fury.io/js/@calcslive%2Fn8n-nodes-calcslive.svg)](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 > **🚧 MVP Release**: This is our initial release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcs.live
 
 ## 🚀 Quick Start
