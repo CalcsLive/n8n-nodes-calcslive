@@ -421,17 +421,6 @@ Sensor API → CalcsLive Calculator → Condition → Email Alert
 ```
 Calculate safety thresholds with proper unit handling.
 
-## 📈 Subscription Tiers & Limits
-
-| Tier | API Calls/Month | Unit Categories | Best For |
-|------|-----------------|-----------------|-----------|
-| **Free** | 100 (after trial) | 25 essential | Testing, demos |
-| **Basic** | 200 | 25 essential | Small workflows | 
-| **Premium** | 1,800 | All 64+ categories | Production systems |
-| **Enterprise** | Unlimited | All categories | Mission-critical |
-
-**Note**: Free tier includes 30-day unlimited trial for testing.
-
 ## 🆘 Support & Community
 
 - **📖 Documentation**: [CalcsLive Docs](https://www.calcs.live/docs)
