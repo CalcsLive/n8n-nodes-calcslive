@@ -8,7 +8,7 @@
 
 Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
 
-> **🚧 MVP Release**: This is our initial release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcs.live
+> **🚧 MVP Release**: This is our early release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcs.live
 
 ## 🚀 Quick Start
 
@@ -31,6 +31,18 @@ Specifically for AI integration, it empowers AI agents with calculation accuracy
 ![n8n CalcsLive Demo Workflow](assets/demo-workflow.png)
 
 *Example n8n workflow showing CalcsLive nodes performing unit-aware calculations: speed calculations, cylinder volume, and mass calculations with automatic unit handling.*
+
+### 🎥 Video Demonstration
+
+**[Watch the Complete Demo on YouTube →](https://www.youtube.com/watch?v=xC4iFwNkIQs)**
+*"n8n + CalcsLive → Plug-and-Play Unit-Aware Calculations"*
+
+This video walkthrough demonstrates:
+- 🚀 Installation and setup in n8n
+- 🎯 Creating CalcsLive calculations from scratch
+- 🔗 Building unit-aware workflow integrations
+- ⚡ Real-time calculation chaining between nodes
+- 📊 Handling complex multi-step engineering calculations
 
 ### Supporting Calculations
 
