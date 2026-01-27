@@ -6,12 +6,12 @@
 	"resources": {
 		"credentialDocumentation": [
 			{
-				"url": "https://www.calcs.live/docs/api"
+				"url": "https://www.calcslive.com/docs/api"
 			}
 		],
 		"primaryDocumentation": [
 			{
-				"url": "https://www.calcs.live/docs"
+				"url": "https://www.calcslive.com/docs"
 			}
 		]
 	},

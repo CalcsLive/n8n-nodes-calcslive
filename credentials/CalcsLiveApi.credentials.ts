@@ -15,17 +15,17 @@ import { ICredentialType, INodeProperties, ICredentialTestRequest } from 'n8n-wo
 export class CalcsLiveApi implements ICredentialType {
   name = 'calcsLiveApi';
   displayName = 'CalcsLive API';
-  documentationUrl = 'https://www.calcs.live/content/docs/api/n8n-integration';
+  documentationUrl = 'https://www.calcslive.com/content/docs/api/n8n-integration';
   properties: INodeProperties[] = [
     {
       displayName: 'Base URL',
       name: 'baseUrl',
       type: 'string',
       required: true,
-      default: 'https://www.calcs.live',
-      placeholder: 'https://www.calcs.live',
+      default: 'https://www.calcslive.com',
+      placeholder: 'https://www.calcslive.com',
       description:
-        'The root URL of the CalcsLive API. Use https://www.calcs.live for production. Do not include a trailing slash.',
+        'The root URL of the CalcsLive API. Use https://www.calcslive.com for production. Do not include a trailing slash.',
     },
     {
       displayName: 'API Key',

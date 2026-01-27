@@ -8,7 +8,7 @@ import {
 export class CalcsLiveApi implements ICredentialType {
 	name = 'calcsLiveApi';
 	displayName = 'CalcsLive API';
-	documentationUrl = 'https://www.calcs.live/docs/api';
+	documentationUrl = 'https://www.calcslive.com/docs/api';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
@@ -25,8 +25,8 @@ export class CalcsLiveApi implements ICredentialType {
 			displayName: 'Base URL',
 			name: 'baseUrl',
 			type: 'string',
-			default: 'https://www.calcs.live',
-			description: 'The base URL for the CalcsLive API (e.g., https://www.calcs.live). Do NOT include the endpoint path.',
+			default: 'https://www.calcslive.com',
+			description: 'The base URL for the CalcsLive API (e.g., https://www.calcslive.com). Do NOT include the endpoint path.',
 		},
 	];
 
@@ -41,7 +41,7 @@ export class CalcsLiveApi implements ICredentialType {
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{$credentials?.baseUrl || "https://www.calcs.live"}}',
+			baseURL: '={{$credentials?.baseUrl || "https://www.calcslive.com"}}',
 			url: '/api/n8n/calculate',
 			method: 'POST',
 			body: {

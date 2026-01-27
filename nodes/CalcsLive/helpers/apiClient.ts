@@ -17,7 +17,7 @@ export async function fetchArticleMetadata(
 	}
 
 	const credentials = await context.getCredentials('calcsLiveApi');
-	const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+	const baseUrl = credentials.baseUrl || 'https://www.calcslive.com';
 	const requestUrl = `${baseUrl}/api/n8n/v1/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
 
 	const response = await context.helpers.httpRequest({

@@ -1,14 +1,14 @@
 # n8n-nodes-calcslive
 
-<img src="https://www.calcs.live/favicon.ico" alt="CalcsLive Logo" width="90">  
+<img src="https://www.calcslive.com/favicon.ico" alt="CalcsLive Logo" width="90">  
 
  **Plug-and-Play Unit-Aware Multi-Step Calculations to your n8n**
  
-[CalcsLive](https://www.calcs.live) calculations feature unit-awareness and pure symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem.  
+[CalcsLive](https://www.calcslive.com) calculations feature unit-awareness and pure symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem.  
 
 Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
 
-> **🚧 MVP Release**: This is our early release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcs.live
+> **🚧 MVP Release**: This is our early release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcslive.com
 
 ## 🚀 Quick Start
 
@@ -19,7 +19,7 @@ Specifically for AI integration, it empowers AI agents with calculation accuracy
 4. Create your **CalcsLive API** credentials with your API key for 'n8n Integration'
 
 ### First Calculation (5 minutes)
-1. **Create a simple calculation** at [CalcsLive](https://www.calcs.live) and note the Article ID
+1. **Create a simple calculation** at [CalcsLive](https://www.calcslive.com) and note the Article ID
 2. Add the **CalcsLive Calculator** node to your workflow
 3. Enter your Article ID and choose **Enhanced Mode** for guided setup
 4. Add input values and watch the unit-aware magic happen! 🎯
@@ -50,8 +50,8 @@ The demo workflow uses these CalcsLive calculations:
 
 | Calculation | Preview | Description |
 |-------------|---------|-------------|
-| **Speed & <br>Cylinder Calculators <br> [(Link)](https://www.calcs.live/editor/3M6UW7CQB-2AP)** | ![Speed Calc](assets/3M6UW7CQB-2AP.png) | Distance/time → speed;<br> Cylinder base diameter, height → Volume & Mass; <br> Unit Conversions <br> (All with unit conversion) |
-| **Mass Calculator<br> [(Link)](https://www.calcs.live/editor/3M6VLSBHB-3HT)** | ![Mass Calc](assets/3M6VLSBHB-3HT.png) | Volume+Density → Mass calculation |
+| **Speed & <br>Cylinder Calculators <br> [(Link)](https://www.calcslive.com/editor/3M6UW7CQB-2AP)** | ![Speed Calc](assets/3M6UW7CQB-2AP.png) | Distance/time → speed;<br> Cylinder base diameter, height → Volume & Mass; <br> Unit Conversions <br> (All with unit conversion) |
+| **Mass Calculator<br> [(Link)](https://www.calcslive.com/editor/3M6VLSBHB-3HT)** | ![Mass Calc](assets/3M6VLSBHB-3HT.png) | Volume+Density → Mass calculation |
 
 ### 🧩 Why Separate Calculations? The Composability Advantage
 
@@ -81,7 +81,7 @@ Want to try this workflow instantly? Download and import our template:
 1. In n8n: **Workflows** → **Import from File**  
 2. Upload `calcslive-demo-workflow-template.json`
 3. **Set up credentials** (you'll be prompted):
-   - **CalcsLive API**: Add your API key from [CalcsLive Account](https://www.calcs.live/account)
+   - **CalcsLive API**: Add your API key from [CalcsLive Account](https://www.calcslive.com/account)
    - **Gmail** (optional): Configure for email notifications
 4. **Execute** and watch the unit-aware magic! ✨
 
@@ -160,7 +160,7 @@ Direct JSON input for:
 ## 📋 Step-by-Step Guide
 
 ### **Step 1: Get Your API Key**
-1. Visit [CalcsLive](https://www.calcs.live) and create an account
+1. Visit [CalcsLive](https://www.calcslive.com) and create an account
 2. Go to **Account** → **API Keys** 
 3. Generate a new API key for n8n integration
 4. Note your subscription tier limits (Free: 100 calls/month after trial)
@@ -170,15 +170,15 @@ Direct JSON input for:
 ### **Step 2: Configure Credentials**
 1. In n8n: **Credentials** → **Create New** → **CalcsLive API**
 2. Enter your API key from Step 1
-3. Base URL: `https://www.calcs.live` (default)
+3. Base URL: `https://www.calcslive.com` (default)
 
 ### **Step 3: Create Your Calculation Articles**
 **Security Note**: CalcsLive's n8n integration API is designed so users can only use their own public calculation articles in the CalcsLive node. You can create your own articles and use them in your node easily following the examples.
 
-1. Visit [CalcsLive](https://www.calcs.live) and create your calculation
+1. Visit [CalcsLive](https://www.calcslive.com) and create your calculation
 2. Define your Physical Quantities (PQs) and mathematical relationships  
 3. Save your calculation and **find the Article ID in the URL**
-   - Example URL: `https://www.calcs.live/editor/3M5NVUCGW-3TA`
+   - Example URL: `https://www.calcslive.com/editor/3M5NVUCGW-3TA`
    - Article ID: `3M5NVUCGW-3TA` (the part after `/editor/`)
 
 **Demo Article IDs** (for reference only - create your own for actual use):
@@ -239,7 +239,7 @@ Data Source → CalcsLive Calculator → Next Node
   }
 }
 ```
-**🎯 Result**: Automatic m → cm conversion! Refer to [Interactive Units Database](https://www.calcs.live/help/units-reference#interactive-units-database) for all units and categories CalcsLive support. The CalcsLive node becomes a **unit-aware bridge** between any two nodes in your workflow.
+**🎯 Result**: Automatic m → cm conversion! Refer to [Interactive Units Database](https://www.calcslive.com/help/units-reference#interactive-units-database) for all units and categories CalcsLive support. The CalcsLive node becomes a **unit-aware bridge** between any two nodes in your workflow.
 
 ### **Example 2: IoT Sensor Processing with n8n Expressions**
 ```
@@ -373,7 +373,7 @@ Database Query → CalcsLive Calculator → PDF Generator → Email
 
 CalcsLive supports **64+ unit categories** with **540+ units**! 
 
-📖 **Complete Reference**: Visit [CalcsLive Units Reference](https://www.calcs.live/help/units-reference) for the interactive browser with search functionality and complete unit listings.
+📖 **Complete Reference**: Visit [CalcsLive Units Reference](https://www.calcslive.com/help/units-reference) for the interactive browser with search functionality and complete unit listings.
 
 ## 📚 API Reference
 
@@ -435,11 +435,11 @@ Calculate safety thresholds with proper unit handling.
 
 ## 🆘 Support & Community
 
-- **📖 Documentation**: [CalcsLive Docs](https://www.calcs.live/docs)
-- **🔧 API Reference**: [CalcsLive API Docs](https://www.calcs.live/docs/api) 
+- **📖 Documentation**: [CalcsLive Docs](https://www.calcslive.com/docs)
+- **🔧 API Reference**: [CalcsLive API Docs](https://www.calcslive.com/docs/api) 
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/calcslive/n8n-nodes-calcslive/issues)
 - **💬 Community**: [n8n Community Forum](https://community.n8n.io)
-- **📧 Direct Support**: don.wen@calcs.live
+- **📧 Direct Support**: don.wen@calcslive.com
 
 ## 🤝 Contributing
 
@@ -488,7 +488,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 CalcsLive transforms how engineers and technical professionals handle calculations by embedding unit-aware mathematics directly into documents and workflows. Founded on the principle that calculations should be as easy as writing text, CalcsLive bridges the gap between mathematical rigor and practical usability.
 
-**Visit [CalcsLive](https://www.calcs.live) to explore the full platform!**
+**Visit [CalcsLive](https://www.calcslive.com) to explore the full platform!**
 
 ---
 
