@@ -10,9 +10,16 @@ import {
 import { getInputPQs, getOutputPQs } from './helpers/optionsLoaders';
 import { getCachedMetadata } from './helpers/metadataCache';
 
+// Package version - update this when bumping version
+const NODE_VERSION = '0.1.11';
+
+// Check for development mode via environment variable
+const IS_DEV_MODE = process.env.CALCSLIVE_DEV === 'true';
+const DISPLAY_NAME = IS_DEV_MODE ? 'CalcsLive Calculator (DEV)' : 'CalcsLive Calculator';
+
 export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'CalcsLive Calculator',
+		displayName: DISPLAY_NAME,
 		name: 'calcsLive',
 		icon: 'file:calcslive.svg',
 		group: ['transform'],
@@ -270,7 +277,7 @@ export class CalcsLive implements INodeType {
 				
 				// Get credentials
 				const credentials = await this.getCredentials('calcsLiveApi');
-				const baseUrl = credentials.baseUrl || 'https://www.calcs.live';
+				const baseUrl = credentials.baseUrl || 'https://www.calcslive.com';
 				
 				// Build request based on configuration mode
 				const requestBody: any = {
@@ -367,6 +374,8 @@ export class CalcsLive implements INodeType {
 							_metadata: {
 								articleId,
 								configMode,
+								nodeVersion: NODE_VERSION,
+								devMode: IS_DEV_MODE,
 								executionTime: new Date().toISOString(),
 							}
 						},
@@ -384,6 +393,8 @@ export class CalcsLive implements INodeType {
 							_metadata: {
 								articleId: this.getNodeParameter('articleId', i, '') as string,
 								configMode: this.getNodeParameter('configMode', i, '') as string,
+								nodeVersion: NODE_VERSION,
+								devMode: IS_DEV_MODE,
 								executionTime: new Date().toISOString(),
 								failed: true,
 							}

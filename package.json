@@ -1,6 +1,6 @@
 {
   "name": "@calcslive/n8n-nodes-calcslive",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Plug-and-play unit conversion and unit-aware multi-step calculations for n8n workflows. Transform your automation with automatic handling of 540+ units across 64+ categories.",
   "keywords": [
     "n8n-community-node-package",
@@ -17,8 +17,8 @@
     "workflow"
   ],
   "license": "MIT",
-  "homepage": "https://www.calcs.live",
-  "author": "CalcsLive <don.wen@calcs.live> (https://www.calcs.live)",
+  "homepage": "https://www.calcslive.com",
+  "author": "CalcsLive <don.wen@calcslive.com> (https://www.calcslive.com)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/calcslive/n8n-nodes-calcslive.git"
@@ -28,7 +28,7 @@
   },
   "funding": {
     "type": "individual",
-    "url": "https://www.calcs.live/pricing"
+    "url": "https://www.calcslive.com/pricing"
   },
   "engines": {
     "node": ">=18.10",

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.11] - 2026-01-27
 
+### Added
+- **Development mode indicator**: Set `CALCSLIVE_DEV=true` environment variable to show "(DEV)" suffix in node display name, helping distinguish local test versions from community installs
+- **Version in output metadata**: `_metadata.nodeVersion` and `_metadata.devMode` now included in all execution results for debugging and version tracking
+
 ### Fixed
 - **[HIGH] Added pairedItem property** to all returnData items for proper n8n item linking
 - **[MEDIUM] Implemented continueOnFail support** in error handling to allow workflows to continue on errors
