@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-01-27
+
+### Fixed
+- **[HIGH] Added pairedItem property** to all returnData items for proper n8n item linking
+- **[MEDIUM] Implemented continueOnFail support** in error handling to allow workflows to continue on errors
+
+### Changed
+- **Removed all console.log statements** from production code across all helper files:
+  - `CalcsLive.node.ts` - removed 10 debug logging statements
+  - `apiClient.ts` - removed 8 debug logging statements
+  - `metadataCache.ts` - removed 11 debug logging statements
+  - `optionsLoaders.ts` - removed 8 debug logging statements
+
+### Technical
+- Addresses n8n Community Engineering team feedback for n8n cloud approval
+- Better error context with `itemIndex` in NodeOperationError
+
 ## [0.1.9] - 2025-09-19
 
 ### Added

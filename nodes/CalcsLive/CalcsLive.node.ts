@@ -260,18 +260,13 @@ export class CalcsLive implements INodeType {
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		console.log('\n🚀 === CalcsLive Node Execution Started ===');
-		console.log('Timestamp:', new Date().toISOString());
-		
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		
+
 		for (let i = 0; i < items.length; i++) {
 			try {
 				const articleId = this.getNodeParameter('articleId', i) as string;
 				const configMode = this.getNodeParameter('configMode', i) as string;
-				
-				console.log('📋 Processing item', i + 1, '- Article:', articleId, '- Mode:', configMode);
 				
 				// Get credentials
 				const credentials = await this.getCredentials('calcsLiveApi');
@@ -316,7 +311,6 @@ export class CalcsLive implements INodeType {
 									const defaultPq = metadata?.inputPQs?.find((defaultPq: any) => defaultPq.symbol === pq.symbol);
 									if (defaultPq && typeof defaultPq.faceValue === 'number') {
 										value = defaultPq.faceValue;
-										console.log(`🔧 Auto-populated value for ${pq.symbol}: ${value} (from article default)`);
 									}
 								}
 								
@@ -325,17 +319,6 @@ export class CalcsLive implements INodeType {
 									const defaultPq = metadata?.inputPQs?.find((defaultPq: any) => defaultPq.symbol === pq.symbol);
 									if (defaultPq && defaultPq.unit) {
 										unit = defaultPq.unit;
-										console.log(`🔧 Auto-populated unit for ${pq.symbol}: ${unit} (from article default)`);
-									}
-								} else {
-									// Validate user-provided unit
-									const metadata = getCachedMetadata(articleId);
-									const defaultPq = metadata?.inputPQs?.find((defaultPq: any) => defaultPq.symbol === pq.symbol);
-									if (defaultPq && metadata?.availableUnits?.[defaultPq.categoryId]) {
-										const validUnits = metadata.availableUnits[defaultPq.categoryId];
-										if (!validUnits.includes(unit)) {
-											console.log(`⚠️  Warning: "${unit}" may not be valid for ${pq.symbol}. Valid units: ${validUnits.join(', ')}`);
-										}
 									}
 								}
 								
@@ -363,9 +346,7 @@ export class CalcsLive implements INodeType {
 						delete requestBody.outputs;
 					}
 				}
-				
-				console.log('📤 API Request:', JSON.stringify(requestBody, null, 2));
-				
+
 				// Make API call with enhanced security headers
 				const response = await this.helpers.httpRequest({
 					method: 'POST',
@@ -378,9 +359,7 @@ export class CalcsLive implements INodeType {
 					body: requestBody,
 					json: true,
 				});
-				
-				console.log('📥 API Response received:', response.success);
-				
+
 				if (response.success) {
 					returnData.push({
 						json: {
@@ -391,18 +370,32 @@ export class CalcsLive implements INodeType {
 								executionTime: new Date().toISOString(),
 							}
 						},
+						pairedItem: { item: i },
 					});
 				} else {
 					throw new NodeOperationError(this.getNode(), `Calculation failed: ${response.error || 'Unknown error'}`);
 				}
-				
+
 			} catch (error: any) {
-				console.log('❌ Execution error:', error.message);
-				throw new NodeOperationError(this.getNode(), error.message);
+				if (this.continueOnFail()) {
+					returnData.push({
+						json: {
+							error: error.message,
+							_metadata: {
+								articleId: this.getNodeParameter('articleId', i, '') as string,
+								configMode: this.getNodeParameter('configMode', i, '') as string,
+								executionTime: new Date().toISOString(),
+								failed: true,
+							}
+						},
+						pairedItem: { item: i },
+					});
+					continue;
+				}
+				throw new NodeOperationError(this.getNode(), error.message, { itemIndex: i });
 			}
 		}
-		
-		console.log('✅ Execution completed:', returnData.length, 'items processed');
+
 		return [returnData];
 	}
 }
