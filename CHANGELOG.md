@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12] - 2026-01-27
+
+### Changed
+- **Removed process.env usage** to pass n8n security scan (`no-restricted-globals` rule)
+- **Version metadata retained**: `_metadata.nodeVersion` still included in execution results
+
+### Technical
+- Passes `npx @n8n/scan-community-package` security validation
+
 ## [0.1.11] - 2026-01-27
 
 ### Added
-- **Development mode indicator**: Set `CALCSLIVE_DEV=true` environment variable to show "(DEV)" suffix in node display name, helping distinguish local test versions from community installs
-- **Version in output metadata**: `_metadata.nodeVersion` and `_metadata.devMode` now included in all execution results for debugging and version tracking
+- **Version in output metadata**: `_metadata.nodeVersion` now included in all execution results for debugging and version tracking
 
 ### Fixed
 - **[HIGH] Added pairedItem property** to all returnData items for proper n8n item linking

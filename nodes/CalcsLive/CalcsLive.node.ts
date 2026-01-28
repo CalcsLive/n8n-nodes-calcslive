@@ -11,15 +11,11 @@ import { getInputPQs, getOutputPQs } from './helpers/optionsLoaders';
 import { getCachedMetadata } from './helpers/metadataCache';
 
 // Package version - update this when bumping version
-const NODE_VERSION = '0.1.11';
-
-// Check for development mode via environment variable
-const IS_DEV_MODE = process.env.CALCSLIVE_DEV === 'true';
-const DISPLAY_NAME = IS_DEV_MODE ? 'CalcsLive Calculator (DEV)' : 'CalcsLive Calculator';
+const NODE_VERSION = '0.1.12';
 
 export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: DISPLAY_NAME,
+		displayName: 'CalcsLive Calculator',
 		name: 'calcsLive',
 		icon: 'file:calcslive.svg',
 		group: ['transform'],
@@ -375,7 +371,6 @@ export class CalcsLive implements INodeType {
 								articleId,
 								configMode,
 								nodeVersion: NODE_VERSION,
-								devMode: IS_DEV_MODE,
 								executionTime: new Date().toISOString(),
 							}
 						},
@@ -394,7 +389,6 @@ export class CalcsLive implements INodeType {
 								articleId: this.getNodeParameter('articleId', i, '') as string,
 								configMode: this.getNodeParameter('configMode', i, '') as string,
 								nodeVersion: NODE_VERSION,
-								devMode: IS_DEV_MODE,
 								executionTime: new Date().toISOString(),
 								failed: true,
 							}
