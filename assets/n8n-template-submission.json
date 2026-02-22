@@ -1,0 +1,347 @@
+{
+  "name": "Perform unit-aware physics calculations with automatic unit conversion using CalcsLive",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🚀 CalcsLive Demo Workflow\n\nThis workflow demonstrates **unit-aware calculations** with automatic unit conversion.\n\n### What you'll learn:\n1. Basic calculations can be reused.\n2. Input units flexibility: no extra conversion needed\n3. Choose output units per downstream needs \n4. Chained calculations (calculations are composable)\n\n### Setup:\n1. Install `@calcslive/n8n-nodes-calcslive` from Community Nodes\n2. Get API key from [calcslive.com](https://www.calcslive.com)\n3. Configure credentials, then click Execute!\n\n### Next:\nCreate/copy your own unit aware calculations in CalcsLive and use to power your n8n workflow.\n\n### Help:\nSupported units: https://calcslive.com/help/units-reference",
+        "height": 512,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [32, -576],
+      "name": "Sticky Note - Intro"
+    },
+    {
+      "parameters": {
+        "content": "### 📊 Speed Calculation\n\nArticleID: 3M6P9TF5P-3XA\nCalc link: https://calcslive.com/editor/3M6P9TF5P-3XA\n\nInputs & outputs variable symbols are populated in dropdown list for cherry-picking.\n\nOutput: Speed in valid unit.",
+        "height": 208,
+        "width": 352,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [832, -64],
+      "name": "Sticky Note - Speed"
+    },
+    {
+      "parameters": {
+        "content": "### 📦 Cylinder Volume\n\nArticleID: 3M6P9TF5P-3XA\nCalc link: https://calcslive.com/editor/3M6P9TF5P-3XA\n\nOutput: Volume in valid unit.",
+        "height": 176,
+        "width": 208,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [608, 336],
+      "name": "Sticky Note - Volume"
+    },
+    {
+      "parameters": {
+        "content": "### ⛓️ Chained Calculation\n\nArticleID: 3M6PBGU7S-3CA\nCalc link: https://calcslive.com/editor/3M6PBGU7S-3CA\n\nThis node takes the **output** from Volume Calc and combines it with density to calculate mass.\n\nNotice how the expression references:\n`$json.data.calculation.outputs.V.value`\n\nThis is the power of composable calculations!",
+        "height": 320,
+        "width": 304,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [880, 336],
+      "name": "Sticky Note - Mass"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [80, -48],
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "Density",
+              "value": "1500",
+              "type": "string"
+            },
+            {
+              "name": "DensityUnit",
+              "value": "kg/m³",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [432, 368],
+      "name": "Set Density Input"
+    },
+    {
+      "parameters": {
+        "articleId": "3M6P9TF5P-3XA",
+        "inputPQs": {
+          "pq": [
+            {
+              "symbol": "d",
+              "value": "={{ $json.distance }}",
+              "unit": "={{ $json.unit }}"
+            },
+            {
+              "symbol": "t",
+              "value": "={{ $json.time }}",
+              "unit": "={{ $json.timeUnit }}"
+            }
+          ]
+        },
+        "outputPQs": {
+          "pq": [
+            {
+              "symbol": "v",
+              "unit": "km/h"
+            }
+          ]
+        }
+      },
+      "type": "@calcslive/n8n-nodes-calcslive.calcsLive",
+      "typeVersion": 1,
+      "position": [640, -48],
+      "name": "Speed Calc (d,t) → v",
+      "credentials": {
+        "calcsLiveApi": {
+          "id": "",
+          "name": "CalcsLive API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "articleId": "3M6P9TF5P-3XA",
+        "inputPQs": {
+          "pq": [
+            {
+              "symbol": "D",
+              "value": "={{ $json.Diameter }}",
+              "unit": "={{ $json.DiaUnit }}"
+            },
+            {
+              "symbol": "h",
+              "value": "={{ $json.Height }}",
+              "unit": "={{ $json.HeightUnit }}"
+            }
+          ]
+        },
+        "outputPQs": {
+          "pq": [
+            {
+              "symbol": "V",
+              "unit": "L"
+            }
+          ]
+        }
+      },
+      "type": "@calcslive/n8n-nodes-calcslive.calcsLive",
+      "typeVersion": 1,
+      "position": [640, 160],
+      "name": "Cylinder Volume (D,h) → V",
+      "credentials": {
+        "calcsLiveApi": {
+          "id": "",
+          "name": "CalcsLive API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "articleId": "3M6PBGU7S-3CA",
+        "inputPQs": {
+          "pq": [
+            {
+              "symbol": "V",
+              "value": "={{ $json.data.calculation.outputs.V.value }}",
+              "unit": "={{ $json.data.calculation.outputs.V.unit }}"
+            },
+            {
+              "symbol": "rho",
+              "value": "={{ $json.Density }}",
+              "unit": "={{ $json.DensityUnit }}"
+            }
+          ]
+        },
+        "outputPQs": {
+          "pq": [
+            {
+              "symbol": "m",
+              "unit": "g"
+            }
+          ]
+        }
+      },
+      "type": "@calcslive/n8n-nodes-calcslive.calcsLive",
+      "typeVersion": 1,
+      "position": [1008, 160],
+      "name": "Mass Calc (V,ρ) → m",
+      "credentials": {
+        "calcsLiveApi": {
+          "id": "",
+          "name": "CalcsLive API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "@[youtube](xC4iFwNkIQs)",
+        "height": 288,
+        "width": 464,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [720, -576],
+      "name": "Sticky Note - Video"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "distance",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "name": "unit",
+              "value": "km",
+              "type": "string"
+            },
+            {
+              "name": "time",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "name": "timeUnit",
+              "value": "h",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [432, -48],
+      "name": "Set Inputs for Speed"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "Diameter",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "name": "DiaUnit",
+              "value": "cm",
+              "type": "string"
+            },
+            {
+              "name": "Height",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "name": "HeightUnit",
+              "value": "cm",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [432, 160],
+      "name": "Set Inputs for Cylinder"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Set Inputs for Speed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Inputs for Cylinder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Density Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cylinder Volume (D,h) → V": {
+      "main": [
+        [
+          {
+            "node": "Mass Calc (V,ρ) → m",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Density Input": {
+      "main": [
+        [
+          {
+            "node": "Mass Calc (V,ρ) → m",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Inputs for Speed": {
+      "main": [
+        [
+          {
+            "node": "Speed Calc (d,t) → v",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Inputs for Cylinder": {
+      "main": [
+        [
+          {
+            "node": "Cylinder Volume (D,h) → V",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

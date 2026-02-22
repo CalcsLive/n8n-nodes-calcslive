@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.13] - 2026-02-21
+
+### Added
+- **n8n workflow template**: Sanitized demo workflow template for n8n community submission
+- **YouTube demo embed**: Sticky note with embedded video in workflow template
+
+### Changed
+- **Template sanitization**: Removed all personal credential IDs and instance metadata
+- **Improved sticky notes**: Better documentation within workflow template
+
+### Technical
+- Workflow template passes n8n submission guidelines review
+- Template includes proper credential placeholders for user configuration
+
 ## [0.1.12] - 2026-01-27
 
 ### Changed
