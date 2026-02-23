@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.14] - 2026-02-23
+
+### Changed
+- **Added authenticate method** to credentials for proper n8n authentication flow
+- **Use httpRequestWithAuthentication** instead of manual Authorization headers
+- **Updated inputs/outputs** to use `NodeConnectionType.Main` instead of `['main'] as any`
+- **Removed requestDefaults** (not needed for programmatic nodes)
+- **Removed apiKey from request body** - authentication now handled via credential authenticate method
+- **Simplified credential test** - now uses GET request with authentication header
+
+### Fixed
+- **Workflow template**: Added Merge node to properly combine Cylinder Volume and Density inputs before Mass Calc
+- **First-run execution**: Workflow now executes correctly on first run (no need for multiple executions)
+
+### Technical
+- Addresses n8n team code review feedback (feedback4)
+- Proper credential authentication pattern for n8n community nodes
+- CalcsLive API updated to support Bearer token authentication via Authorization header
+
 ## [0.1.13] - 2026-02-21
 
 ### Added

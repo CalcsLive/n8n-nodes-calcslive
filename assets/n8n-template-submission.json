@@ -1,5 +1,5 @@
 {
-  "name": "Perform unit-aware physics calculations with automatic unit conversion using CalcsLive",
+  "name": "Unit-aware calculations with CalcsLive",
   "nodes": [
     {
       "parameters": {
@@ -38,14 +38,26 @@
     },
     {
       "parameters": {
-        "content": "### ⛓️ Chained Calculation\n\nArticleID: 3M6PBGU7S-3CA\nCalc link: https://calcslive.com/editor/3M6PBGU7S-3CA\n\nThis node takes the **output** from Volume Calc and combines it with density to calculate mass.\n\nNotice how the expression references:\n`$json.data.calculation.outputs.V.value`\n\nThis is the power of composable calculations!",
-        "height": 320,
+        "content": "### 🔀 Merge Node\n\nCombines data from:\n- Cylinder Volume (V)\n- Density Input (ρ)\n\nBoth are needed for Mass Calc.",
+        "height": 190,
+        "width": 200,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [840, 416],
+      "name": "Sticky Note - Merge"
+    },
+    {
+      "parameters": {
+        "content": "### ⛓️ Chained Calculation\n\nArticleID: 3M6PBGU7S-3CA\nCalc link: https://calcslive.com/editor/3M6PBGU7S-3CA\n\nThis node takes the **merged output** from Volume Calc + Density to calculate mass.\n\nThis is the power of composable calculations!",
+        "height": 240,
         "width": 304,
         "color": 2
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [880, 336],
+      "position": [1056, 416],
       "name": "Sticky Note - Mass"
     },
     {
@@ -61,8 +73,8 @@
           "assignments": [
             {
               "name": "Density",
-              "value": "1500",
-              "type": "string"
+              "value": 1500,
+              "type": "number"
             },
             {
               "name": "DensityUnit",
@@ -154,6 +166,17 @@
     },
     {
       "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [856, 264],
+      "name": "Merge Volume + Density"
+    },
+    {
+      "parameters": {
         "articleId": "3M6PBGU7S-3CA",
         "inputPQs": {
           "pq": [
@@ -180,7 +203,7 @@
       },
       "type": "@calcslive/n8n-nodes-calcslive.calcsLive",
       "typeVersion": 1,
-      "position": [1008, 160],
+      "position": [1072, 264],
       "name": "Mass Calc (V,ρ) → m",
       "credentials": {
         "calcsLiveApi": {
@@ -295,7 +318,7 @@
       "main": [
         [
           {
-            "node": "Mass Calc (V,ρ) → m",
+            "node": "Merge Volume + Density",
             "type": "main",
             "index": 0
           }
@@ -303,6 +326,17 @@
       ]
     },
     "Set Density Input": {
+      "main": [
+        [
+          {
+            "node": "Merge Volume + Density",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Volume + Density": {
       "main": [
         [
           {

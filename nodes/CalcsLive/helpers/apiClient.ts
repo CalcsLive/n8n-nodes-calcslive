@@ -17,18 +17,21 @@ export async function fetchArticleMetadata(
 	}
 
 	const credentials = await context.getCredentials('calcsLiveApi');
-	const baseUrl = credentials.baseUrl || 'https://www.calcslive.com';
-	const requestUrl = `${baseUrl}/api/n8n/v1/validate?articleId=${articleId}&apiKey=${credentials.apiKey}`;
+	const baseUrl = (credentials.baseUrl as string) || 'https://www.calcslive.com';
+	const requestUrl = `${baseUrl}/api/n8n/v1/validate?articleId=${articleId}`;
 
-	const response = await context.helpers.httpRequest({
-		method: 'GET',
-		url: requestUrl,
-		headers: {
-			'Authorization': `Bearer ${credentials.apiKey}`,
-			'X-CalcsLive-Source': 'n8n-node',
-			'User-Agent': 'n8n-calcslive-node/1.0.0',
+	const response = await context.helpers.httpRequestWithAuthentication.call(
+		context,
+		'calcsLiveApi',
+		{
+			method: 'GET',
+			url: requestUrl,
+			headers: {
+				'X-CalcsLive-Source': 'n8n-node',
+				'User-Agent': 'n8n-calcslive-node/1.0.0',
+			},
 		},
-	});
+	);
 
 	if (response.success && response.data?.article) {
 		// Convert v1 API response to metadata format

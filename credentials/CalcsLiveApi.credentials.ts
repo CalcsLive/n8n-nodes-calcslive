@@ -1,4 +1,9 @@
-import { ICredentialType, INodeProperties, ICredentialTestRequest } from 'n8n-workflow';
+import {
+  IAuthenticateGeneric,
+  ICredentialTestRequest,
+  ICredentialType,
+  INodeProperties,
+} from 'n8n-workflow';
 
 /**
  * Credentials for the CalcsLive API.
@@ -41,17 +46,20 @@ export class CalcsLiveApi implements ICredentialType {
     },
   ];
 
+  authenticate: IAuthenticateGeneric = {
+    type: 'generic',
+    properties: {
+      headers: {
+        Authorization: '=Bearer {{$credentials.apiKey}}',
+      },
+    },
+  };
+
   test: ICredentialTestRequest = {
     request: {
       baseURL: '={{$credentials.baseUrl}}',
       url: '/api/n8n/v1/test',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: {
-        apiKey: '={{$credentials.apiKey}}',
-      },
+      method: 'GET',
     },
   };
 }

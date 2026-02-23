@@ -3,6 +3,7 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	NodeConnectionType,
 	NodeOperationError,
 } from 'n8n-workflow';
 
@@ -11,7 +12,7 @@ import { getInputPQs, getOutputPQs } from './helpers/optionsLoaders';
 import { getCachedMetadata } from './helpers/metadataCache';
 
 // Package version - update this when bumping version
-const NODE_VERSION = '0.1.13';
+const NODE_VERSION = '0.1.14';
 
 export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {
@@ -25,20 +26,14 @@ export class CalcsLive implements INodeType {
 		defaults: {
 			name: 'CalcsLive Calculator',
 		},
-		inputs: ['main'] as any,
-		outputs: ['main'] as any,
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'calcsLiveApi',
 				required: true,
 			},
 		],
-		requestDefaults: {
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-			},
-		},
 		properties: [
 			// Resource selection
 			{
@@ -271,14 +266,13 @@ export class CalcsLive implements INodeType {
 				const articleId = this.getNodeParameter('articleId', i) as string;
 				const configMode = this.getNodeParameter('configMode', i) as string;
 				
-				// Get credentials
+				// Get credentials for base URL
 				const credentials = await this.getCredentials('calcsLiveApi');
-				const baseUrl = credentials.baseUrl || 'https://www.calcslive.com';
-				
+				const baseUrl = (credentials.baseUrl as string) || 'https://www.calcslive.com';
+
 				// Build request based on configuration mode
 				const requestBody: any = {
 					articleId,
-					apiKey: credentials.apiKey, // Keep in body for backward compatibility
 				};
 				
 				if (configMode === 'legacy') {
@@ -350,18 +344,21 @@ export class CalcsLive implements INodeType {
 					}
 				}
 
-				// Make API call with enhanced security headers
-				const response = await this.helpers.httpRequest({
-					method: 'POST',
-					url: `${baseUrl}/api/n8n/v1/calculate`,
-					headers: {
-						'Authorization': `Bearer ${credentials.apiKey}`,
-						'X-CalcsLive-Source': 'n8n-node',
-						'User-Agent': 'n8n-calcslive-node/1.0.0',
+				// Make API call using authenticated request
+				const response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'calcsLiveApi',
+					{
+						method: 'POST',
+						url: `${baseUrl}/api/n8n/v1/calculate`,
+						headers: {
+							'X-CalcsLive-Source': 'n8n-node',
+							'User-Agent': 'n8n-calcslive-node/1.0.0',
+						},
+						body: requestBody,
+						json: true,
 					},
-					body: requestBody,
-					json: true,
-				});
+				);
 
 				if (response.success) {
 					returnData.push({

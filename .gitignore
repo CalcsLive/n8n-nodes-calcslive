@@ -69,6 +69,7 @@ refs/
 UI/
 workflows/
 .github/
+n8n-start.bat
 
 # Documentation drafts and prompts  
 *PROMPT*.md
