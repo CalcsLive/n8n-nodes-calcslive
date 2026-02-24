@@ -1,14 +1,18 @@
 # n8n-nodes-calcslive
 
-<img src="https://www.calcslive.com/favicon.ico" alt="CalcsLive Logo" width="90">  
+<img src="https://www.calcslive.com/favicon.ico" alt="CalcsLive Logo" width="90">
+
+[![npm version](https://img.shields.io/npm/v/@calcslive/n8n-nodes-calcslive.svg)](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive)
+![n8n community node](https://img.shields.io/badge/n8n-community%20node-ff6d5a)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
  **Plug-and-Play Unit-Aware Multi-Step Calculations to your n8n**
- 
-[CalcsLive](https://www.calcslive.com) calculations feature unit-awareness and pure symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem.  
 
-Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 540+ units across 64+ categories.
+[CalcsLive](https://www.calcslive.com) calculations feature unit-awareness physical quantities and unit agnostic symbolic equations to enable you to THINK in Physics without distraction in handling units. [`@calcslive/n8n-nodes-calcslive`](https://www.npmjs.com/package/@calcslive/n8n-nodes-calcslive) brings in the power and elegance to your n8n ecosystem.
 
-> **🚧 MVP Release**: This is our early release focused on core unit-aware calculation functionality. We're actively improving the node and welcome your feedback to help shape future features! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcslive.com
+Specifically for AI integration, it empowers AI agents with calculation accuracy and automatic handling of 570+ units across 67+ categories.
+
+> **✅ Now Listed in n8n Community Directory!** Install directly from n8n's Community Nodes. We're actively improving the node and welcome your feedback! [Share your thoughts](https://github.com/calcslive/n8n-nodes-calcslive/issues) or reach out at don.wen@calcslive.com
 
 ## 🚀 Quick Start
 
@@ -77,7 +81,7 @@ The demo workflow uses these CalcsLive calculations:
 
 Want to try this workflow instantly? Download and import our template:
 
-**[📥 Download Demo Workflow](assets/n8n-template-submission.json)** *(Right-click → Save As)*
+**[📥 Download Demo Workflow](https://raw.githubusercontent.com/calcslive/n8n-nodes-calcslive/main/assets/n8n-template-submission.json)** *(Right-click → Save As)*
 
 **Import Instructions:**
 1. In n8n: **Workflows** → **Import from File**
@@ -467,6 +471,7 @@ n8n start
 ## 📋 Version History
 
 ### **0.1.15** - n8n Community Compliance
+- ✅ Approved by n8n and listed in n8n community directory.
 - ✅ Proper credential authentication with `authenticate` method
 - ✅ Uses `httpRequestWithAuthentication` for secure API calls
 - ✅ Added `pairedItem` for proper n8n item linking
