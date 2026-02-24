@@ -30,8 +30,9 @@ module.exports = {
 		
 		// n8n specific rules
 		'n8n-nodes-base/node-dirname-against-convention': 'error',
-		'n8n-nodes-base/node-class-description-inputs-wrong-regular-node': 'error',
-		'n8n-nodes-base/node-class-description-outputs-wrong': 'error',
+		// Disabled per n8n team code review feedback - use NodeConnectionType.Main
+		'n8n-nodes-base/node-class-description-inputs-wrong-regular-node': 'off',
+		'n8n-nodes-base/node-class-description-outputs-wrong': 'off',
 		'n8n-nodes-base/node-filename-against-convention': 'error',
 		'n8n-nodes-base/cred-filename-against-convention': 'error',
 		

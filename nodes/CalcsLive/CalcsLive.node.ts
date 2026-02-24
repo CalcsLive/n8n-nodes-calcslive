@@ -12,7 +12,7 @@ import { getInputPQs, getOutputPQs } from './helpers/optionsLoaders';
 import { getCachedMetadata } from './helpers/metadataCache';
 
 // Package version - update this when bumping version
-const NODE_VERSION = '0.1.14';
+const NODE_VERSION = '0.1.15';
 
 export class CalcsLive implements INodeType {
 	description: INodeTypeDescription = {

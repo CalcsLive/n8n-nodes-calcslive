@@ -28,9 +28,10 @@ Specifically for AI integration, it empowers AI agents with calculation accuracy
 
 ## 📸 Demo Workflow
 
-![n8n CalcsLive Demo Workflow](assets/demo-workflow.png)
+![n8n CalcsLive Demo Workflow](https://raw.githubusercontent.com/calcslive/n8n-nodes-calcslive/main/assets/demo-workflow.png)
 
-*Example n8n workflow showing CalcsLive nodes performing unit-aware calculations: speed calculations, cylinder volume, and mass calculations with automatic unit handling.*
+
+*Example n8n workflow showing CalcsLive nodes performing unit-aware calculations: speed calculation, cylinder volume, and chained mass calculation using a Merge node to combine volume output with density input.*
 
 ### 🎥 Video Demonstration
 
@@ -48,10 +49,11 @@ This video walkthrough demonstrates:
 
 The demo workflow uses these CalcsLive calculations:
 
-| Calculation | Preview | Description |
+| Calculation | Article ID | Description |
 |-------------|---------|-------------|
-| **Speed & <br>Cylinder Calculators <br> [(Link)](https://www.calcslive.com/editor/3M6UW7CQB-2AP)** | ![Speed Calc](assets/3M6UW7CQB-2AP.png) | Distance/time → speed;<br> Cylinder base diameter, height → Volume & Mass; <br> Unit Conversions <br> (All with unit conversion) |
-| **Mass Calculator<br> [(Link)](https://www.calcslive.com/editor/3M6VLSBHB-3HT)** | ![Mass Calc](assets/3M6VLSBHB-3HT.png) | Volume+Density → Mass calculation |
+| **Speed Calculator** [(Link)](https://www.calcslive.com/editor/3M6P9TF5P-3XA) | `3M6P9TF5P-3XA` | Distance/time → speed with unit conversion |
+| **Cylinder Volume** [(Link)](https://www.calcslive.com/editor/3M6P9TF5P-3XA) | `3M6P9TF5P-3XA` | Diameter/height → volume calculation |
+| **Mass Calculator** [(Link)](https://www.calcslive.com/editor/3M6PBGU7S-3CA) | `3M6PBGU7S-3CA` | Volume + Density → Mass (chained calculation) |
 
 ### 🧩 Why Separate Calculations? The Composability Advantage
 
@@ -75,17 +77,16 @@ The demo workflow uses these CalcsLive calculations:
 
 Want to try this workflow instantly? Download and import our template:
 
-**[📥 Download Demo Workflow](assets/calcslive-demo-workflow-template.json)** *(Right-click → Save As)*
+**[📥 Download Demo Workflow](assets/n8n-template-submission.json)** *(Right-click → Save As)*
 
 **Import Instructions:**
-1. In n8n: **Workflows** → **Import from File**  
-2. Upload `calcslive-demo-workflow-template.json`
+1. In n8n: **Workflows** → **Import from File**
+2. Upload `n8n-template-submission.json`
 3. **Set up credentials** (you'll be prompted):
    - **CalcsLive API**: Add your API key from [CalcsLive Account](https://www.calcslive.com/account)
-   - **Gmail** (optional): Configure for email notifications
 4. **Execute** and watch the unit-aware magic! ✨
 
-The template includes data chaining expressions showing how volume flows from Cylinder calc → Mass calc seamlessly.
+The template includes a **Merge node** that combines Volume calculation output with Density input, demonstrating how to chain calculations that require data from multiple sources.
 
 ## ✨ Why CalcsLive? The Plug-and-Play Revolution!
 
@@ -182,9 +183,8 @@ Direct JSON input for:
    - Article ID: `3M5NVUCGW-3TA` (the part after `/editor/`)
 
 **Demo Article IDs** (for reference only - create your own for actual use):
-- `3M5NVUCGW-3TA` - Speed Distance Time Calculator (demo)
-- `3VQ7Z8X2P-4B9` - Power Calculation (demo)
-- `2H8M3K5N-7C1` - Material Stress Analysis (demo)
+- `3M6P9TF5P-3XA` - Speed & Cylinder Volume Calculator
+- `3M6PBGU7S-3CA` - Mass Calculator (Volume × Density)
 
 ### **Step 4: Configure Your Node**
 
@@ -466,13 +466,21 @@ n8n start
 
 ## 📋 Version History
 
+### **0.1.15** - n8n Community Compliance
+- ✅ Proper credential authentication with `authenticate` method
+- ✅ Uses `httpRequestWithAuthentication` for secure API calls
+- ✅ Added `pairedItem` for proper n8n item linking
+- ✅ Implemented `continueOnFail` support
+- ✅ Workflow template with Merge node for chained calculations
+- ✅ Removed all console.log statements
+- ✅ Passes n8n security scan
+
 ### **0.1.0** - MVP Release
 - ✅ Enhanced and Legacy configuration modes
-- ✅ Automatic unit conversion system  
+- ✅ Automatic unit conversion system
 - ✅ Comprehensive error handling
 - ✅ API key authentication
 - ✅ Input/output parameter discovery
-- ✅ Debug logging for troubleshooting
 
 ### **Roadmap**
 - **0.2.0**: Batch processing optimizations
