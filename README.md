@@ -375,7 +375,7 @@ Database Query → CalcsLive Calculator → PDF Generator → Email
 
 ## 🌍 Units & Categories
 
-CalcsLive supports **64+ unit categories** with **540+ units**! 
+CalcsLive supports **67+ unit categories** with **570+ units**! 
 
 📖 **Complete Reference**: Visit [CalcsLive Units Reference](https://www.calcslive.com/help/units-reference) for the interactive browser with search functionality and complete unit listings.
 
